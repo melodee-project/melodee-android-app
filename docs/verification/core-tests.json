@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-26",
+  "suites": [
+    {
+      "name": "org.melodee.core.auth.SessionCoordinatorTest",
+      "tests": "17",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "time": "0.196"
+    },
+    {
+      "name": "org.melodee.core.cache.PrefetchPlannerTest",
+      "tests": "14",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "time": "0.023"
+    }
+  ]
+}

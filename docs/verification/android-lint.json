@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-26",
+  "errors": 0,
+  "warnings": [
+    {
+      "id": "GradleDependency",
+      "message": "A newer version of androidx.compose:compose-bom than 2025.10.01 is available: 2026.11.01"
+    },
+    {
+      "id": "GradleDependency",
+      "message": "A newer version of androidx.activity:activity-compose than 1.11.0 is available: 1.13.0"
+    },
+    {
+      "id": "GradleDependency",
+      "message": "A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.9.4 is available: 2.11.1"
+    },
+    {
+      "id": "GradleDependency",
+      "message": "A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.9.4 is available: 2.11.1"
+    },
+    {
+      "id": "GradleDependency",
+      "message": "A newer version of androidx.core:core-ktx than 1.17.0 is available: 1.19.1"
+    },
+    {
+      "id": "NewerVersionAvailable",
+      "message": "A newer version of org.jetbrains.kotlin.android than 2.2.21 is available: 2.4.21"
+    },
+    {
+      "id": "ExportedContentProvider",
+      "message": "Exported content providers can provide access to potentially sensitive data"
+    },
+    {
+      "id": "ExportedService",
+      "message": "Exported service does not require permission"
+    },
+    {
+      "id": "ObsoleteSdkInt",
+      "message": "This folder configuration (`v26`) is unnecessary; `minSdkVersion` is 29. Merge all the resources in this folder into `mipmap-anydpi`."
+    },
+    {
+      "id": "MonochromeLauncherIcon",
+      "message": "The application adaptive icon is missing a monochrome tag"
+    },
+    {
+      "id": "UseKtx",
+      "message": "Use the KTX function `createBitmap` instead?"
+    },
+    {
+      "id": "UseKtx",
+      "message": "Use the KTX extension function `String.toUri` instead?"
+    }
+  ]
+}

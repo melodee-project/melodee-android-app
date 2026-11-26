@@ -1,0 +1,20 @@
+# Machine-specific and generated files
+.gradle/
+.kotlin/
+**/build/
+local.properties
+*.iml
+.idea/
+.DS_Store
+Thumbs.db
+captures/
+*.apk
+*.aab
+*.apks
+*.jks
+*.keystore
+.env
+.env.*
+!**/.env.example
+# Keep the official Gradle wrapper binary and Room schema history.
+!gradle/wrapper/gradle-wrapper.jar
