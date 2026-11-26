@@ -23,9 +23,11 @@ data class Track(
     /** Immutable server revision when available; used for cache identity/revalidation. */
     val revision: String = "",
     val updatedAt: String = "",
+    val rating: Int = 0,
 ) {
     init {
         require(id.isNotBlank() && title.isNotBlank())
+        require(rating in 0..5)
         require(durationMs >= 0)
     }
 }
@@ -43,6 +45,7 @@ data class Album(
     val mode: CatalogMode,
     val updatedAt: String = "",
     val isStarred: Boolean = false,
+    val rating: Int = 0,
 )
 
 data class Artist(
@@ -54,6 +57,7 @@ data class Artist(
     val biography: String?,
     val mode: CatalogMode,
     val isStarred: Boolean = false,
+    val rating: Int = 0,
 )
 
 data class Playlist(

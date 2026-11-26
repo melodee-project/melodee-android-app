@@ -38,6 +38,7 @@ internal fun ArtistDto.toDomain(origin: ServerOrigin): Artist = Artist(
     biography = biography,
     mode = CatalogMode.LIVE,
     isStarred = userStarred,
+    rating = userRating,
 )
 
 internal fun AlbumDto.toDomain(origin: ServerOrigin, trackIds: List<String> = emptyList()): Album = Album(
@@ -53,6 +54,7 @@ internal fun AlbumDto.toDomain(origin: ServerOrigin, trackIds: List<String> = em
     mode = CatalogMode.LIVE,
     updatedAt = revisionOf(updatedAt, createdAt, 0),
     isStarred = userStarred,
+    rating = userRating,
 )
 
 internal fun SongDto.toDomain(origin: ServerOrigin): Track = Track(
@@ -68,6 +70,7 @@ internal fun SongDto.toDomain(origin: ServerOrigin): Track = Track(
     mode = CatalogMode.LIVE,
     revision = revisionOf(updatedAt, createdAt, bitrate),
     updatedAt = updatedAt,
+    rating = userRating,
 )
 
 internal fun PlaylistDto.toDomain(origin: ServerOrigin, trackIds: List<String> = emptyList()): Playlist = Playlist(

@@ -34,6 +34,8 @@ Android app validation with the authorised temporary test account:
   artist; both were returned to the unliked state.
 - Album like UI: on the live album detail, the heart changed to the filled “Unlike album” state
   through the production API, then was toggled back to unliked.
+- Ratings: production setrating returned 200 for album, artist and song at 5 and at clear 0.
+  Album detail five-star UI set and cleared the rating on the physical device.
 - Google: server returned "Google authentication is not enabled"; the app shows only the
   explicit placeholder action and does not fake Google sign-in.
 

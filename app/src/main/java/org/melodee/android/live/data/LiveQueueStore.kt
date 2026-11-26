@@ -90,6 +90,7 @@ private data class SnapshotTrackDto(
     val artworkUrl: String?,
     val revision: String,
     val updatedAt: String,
+    val rating: Int = 0,
 ) {
     fun toDomain() = Track(
         id = id,
@@ -104,6 +105,7 @@ private data class SnapshotTrackDto(
         mode = CatalogMode.LIVE,
         revision = revision,
         updatedAt = updatedAt,
+        rating = rating.coerceIn(0, 5),
     )
 }
 
@@ -136,4 +138,5 @@ private fun Track.toSnapshot() = SnapshotTrackDto(
     artworkUrl = (artwork as? Artwork.Remote)?.url,
     revision = revision,
     updatedAt = updatedAt,
+    rating = rating,
 )

@@ -136,6 +136,28 @@ fun SettingRow(icon: ImageVector, title: String, subtitle: String, onClick: (() 
     }
 }
 
+@Composable
+fun RatingRow(rating: Int, onRate: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        (1..5).forEach { star ->
+            IconButton(
+                onClick = { onRate(if (rating == star) 0 else star) },
+                modifier = Modifier.size(38.dp),
+            ) {
+                Icon(
+                    if (star <= rating) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                    contentDescription = if (star <= rating) "Clear $star-star rating" else "Rate $star stars",
+                    tint = if (star <= rating) Accent else Muted,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+        if (rating > 0) {
+            TextButton(onClick = { onRate(0) }) { Text("Clear", color = Accent) }
+        }
+    }
+}
+
 fun formatTime(milliseconds: Long): String {
     val seconds = (milliseconds / 1_000).coerceAtLeast(0)
     return "%d:%02d".format(seconds / 60, seconds % 60)

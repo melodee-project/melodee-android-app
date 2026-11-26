@@ -59,7 +59,7 @@ kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
 
 | Check | Result | Evidence / meaning |
 |---|---|---|
-| `./gradlew test --warning-mode=all` | **PASS — 57/57 unit tests** | 31 existing core tests + 26 app tests: 11 API/origin/paging/like contract, 5 refresh classification, 5 session manager, 5 prefetch executor; 0 failures/errors/skips. |
+| `./gradlew test --warning-mode=all` | **PASS — 58/58 unit tests** | 31 existing core tests + 27 app tests: 12 API/origin/paging/like/rating contract, 5 refresh classification, 5 session manager, 5 prefetch executor; 0 failures/errors/skips. |
 | `./gradlew :app:lintDebug` | **PASS — 0 errors, 30 warnings** | Warnings are dependency/toolchain advisories, intentional exported media components, target API 37 advisory, KTX suggestions and the unchanged release shrink policy. No suppression or baseline was added. |
 | `./gradlew :app:assembleRelease` | **PASS** | R8 release packaging succeeds with the new network/cache dependencies; artifact remains unsigned by policy. |
 | `./gradlew :app:connectedDebugAndroidTest` | **PASS — 11/11 tests** | 1 original demo service/controller smoke test, 4 Keystore store tests, 1 Room v1→v2 migration test, 3 live catalog/cache/queue tests, 1 live signed-audio service test, 1 live phone UI test. |
@@ -72,6 +72,8 @@ kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
 | Paged catalog contract | **PASS** | Unit test asserts album page/pageSize query parameters and grouped search page fields; live catalog uses bounded pages and exposes “Show more” instead of fetching a whole library. |
 | Album/artist like routes | **PASS** | A production-authenticated read/write check star/unstarred the first album and artist with HTTP 200 each, then returned both to unliked state. Android API unit tests assert the `/albums/starred/{id}/{bool}` and `/artists/starred/{id}/{bool}` routes. |
 | Album like UI | **PASS** | On the physical device’s live album detail, tapping the outline heart changed it to the filled “Unlike album” state through the production endpoint; tapping again restored the unliked state. |
+| Album/artist/song rating routes | **PASS** | Production-authenticated setrating calls returned 200 for album, artist and song with rating 5 and then clear 0. Android API tests assert `/albums/setrating`, `/artists/setrating` and `/songs/setrating` routes. |
+| Album rating UI | **PASS** | On the physical device’s live album detail, the five-star row set a 5-star rating through the production API and showed the “Clear 5-star rating” state; tapping the selected star returned it to unset. |
 
 ### Not executed or not qualified
 

@@ -50,5 +50,8 @@ interface MusicCatalog {
     suspend fun setFavorite(trackId: String, favorite: Boolean)
     suspend fun setAlbumFavorite(albumId: String, favorite: Boolean)
     suspend fun setArtistFavorite(artistId: String, favorite: Boolean)
+    suspend fun setTrackRating(trackId: String, rating: Int)
+    suspend fun setAlbumRating(albumId: String, rating: Int)
+    suspend fun setArtistRating(artistId: String, rating: Int)
     suspend fun searchDomain(query: String, page: Int = 1, pageSize: Int = 50): SearchResults
 }

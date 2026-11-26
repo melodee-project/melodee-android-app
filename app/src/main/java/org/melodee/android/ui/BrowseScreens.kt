@@ -376,6 +376,9 @@ fun CollectionScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Li
             val description = if (playlist) mix?.description else album?.description
             if (!description.isNullOrBlank()) Text(description, color = Muted,
                 style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+            if (!playlist && album != null) {
+                RatingRow(album.rating, { vm.rateAlbum(album.id, it) }, Modifier.padding(top = 10.dp))
+            }
             Row(Modifier.fillMaxWidth().padding(top = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("${tracks.size} tracks",
                     color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -436,8 +439,9 @@ fun ArtistScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Librar
                         }
                         Text("${artist.albumCount} albums · ${artist.songCount} songs",
                             color = Muted, modifier = Modifier.padding(top = 6.dp))
+                        RatingRow(artist.rating, { vm.rateArtist(artist.id, it) }, Modifier.padding(top = 8.dp))
                         if (tracks.isNotEmpty()) {
-                            Button(onClick = { vm.play(tracks.map(Track::id)) }, modifier = Modifier.padding(top = 14.dp)) {
+                            Button(onClick = { vm.play(tracks.map(Track::id)) }, modifier = Modifier.padding(top = 8.dp)) {
                                 Icon(Icons.Rounded.PlayArrow, null)
                                 Spacer(Modifier.width(6.dp))
                                 Text("Play artist")

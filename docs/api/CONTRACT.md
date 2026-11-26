@@ -56,6 +56,9 @@ settings and signed stream URLs. It does **not** depend on the missing server qu
 | Star song | `POST /api/v1/songs/starred/{uuid}/{true|false}` | bearer | 200; idempotent set |
 | Star album | `POST /api/v1/albums/starred/{uuid}/{true|false}` | bearer | 200; idempotent set |
 | Star artist | `POST /api/v1/artists/starred/{uuid}/{true|false}` | bearer | 200; idempotent set |
+| Rate song | `POST /api/v1/songs/setrating/{uuid}/{0-5}` | bearer | 200; 0 clears |
+| Rate album | `POST /api/v1/albums/setrating/{uuid}/{0-5}` | bearer | 200; 0 clears |
+| Rate artist | `POST /api/v1/artists/setrating/{uuid}/{0-5}` | bearer | 200; 0 clears |
 | Recently played | `GET /api/v1/user/last-played?page&pageSize` | bearer | `Paged<Song>` |
 | Stream bytes | `GET/HEAD /song/stream/{trackUuid}/{userUuid}/{hmac}` | signed URL | 200/206/416; no bearer header |
 

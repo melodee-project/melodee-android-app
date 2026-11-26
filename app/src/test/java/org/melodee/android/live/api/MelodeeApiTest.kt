@@ -119,6 +119,20 @@ class MelodeeApiTest {
         assertEquals("/api/v1/artists/starred/artist-1/false", server.takeRequest().path)
     }
 
+    @Test fun `rating mutations use setrating routes and accept clear`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200))
+        api.setAlbumRating(origin, "token", "album-1", 5)
+        assertEquals("/api/v1/albums/setrating/album-1/5", server.takeRequest().path)
+
+        server.enqueue(MockResponse().setResponseCode(200))
+        api.setArtistRating(origin, "token", "artist-1", 0)
+        assertEquals("/api/v1/artists/setrating/artist-1/0", server.takeRequest().path)
+
+        server.enqueue(MockResponse().setResponseCode(200))
+        api.setSongRating(origin, "token", "track-1", 3)
+        assertEquals("/api/v1/songs/setrating/track-1/3", server.takeRequest().path)
+    }
+
     @Test fun `stream URL must stay on the configured origin`() = runTest {
         server.enqueue(json("""{"id":"track-1","streamUrl":"/song/stream/track-1/user-1/token"}"""))
         val url = api.streamUrl(origin, "token", "track-1")

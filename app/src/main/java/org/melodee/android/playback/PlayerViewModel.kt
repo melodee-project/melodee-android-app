@@ -112,6 +112,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val app = application as MelodeeApplication
     private val container = app.container
     private var activeCatalog: MusicCatalog = container.liveCatalog
+    private val trackRatingOverrides = mutableMapOf<String, Int>()
 
     val settings = app.preferences.settings.stateIn(viewModelScope,
         SharingStarted.WhileSubscribed(5_000), UserSettings())
@@ -172,6 +173,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun reloadLibrary() {
         libraryJob?.cancel()
         libraryJob = viewModelScope.launch {
+            trackRatingOverrides.clear()
             mutableLibrary.value = mutableLibrary.value.copy(
                 loading = true, error = null, selectedAlbum = null, selectedPlaylist = null,
                 selectedArtist = null, selectedTracks = emptyList(), artistAlbums = emptyList(),
@@ -226,9 +228,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun update() {
         val player = controller ?: return
         val catalog = activeCatalog
-        val current = player.currentMediaItem?.let(catalog::trackFromMediaItem)
+        fun withRating(track: Track): Track =
+            track.copy(rating = trackRatingOverrides[track.id] ?: track.rating)
+        val current = player.currentMediaItem?.let(catalog::trackFromMediaItem)?.let(::withRating)
         val queue = (0 until player.mediaItemCount).mapNotNull { index ->
-            catalog.trackFromMediaItem(player.getMediaItemAt(index))
+            catalog.trackFromMediaItem(player.getMediaItemAt(index))?.let(::withRating)
         }
         val order = mutableListOf<Int>()
         val timeline = player.currentTimeline
@@ -425,6 +429,50 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         albums = mutableLibrary.value.albums.map(update),
                         artistAlbums = mutableLibrary.value.artistAlbums.map(update),
                         home = mutableLibrary.value.home.copy(recentAlbums = mutableLibrary.value.home.recentAlbums.map(update)),
+                    )
+                }
+                .onFailure { mutableState.value = mutableState.value.copy(error = libraryError(it)) }
+        }
+    }
+
+    fun rateTrack(id: String, rating: Int) {
+        if (rating !in 0..5) return
+        viewModelScope.launch {
+            runCatching { activeCatalog.setTrackRating(id, rating) }
+                .onSuccess {
+                    trackRatingOverrides[id] = rating
+                    update()
+                }
+                .onFailure { mutableState.value = mutableState.value.copy(error = libraryError(it)) }
+        }
+    }
+
+    fun rateAlbum(id: String, rating: Int) {
+        if (rating !in 0..5) return
+        viewModelScope.launch {
+            runCatching { activeCatalog.setAlbumRating(id, rating) }
+                .onSuccess {
+                    val update: (Album) -> Album = { if (it.id == id) it.copy(rating = rating) else it }
+                    mutableLibrary.value = mutableLibrary.value.copy(
+                        selectedAlbum = mutableLibrary.value.selectedAlbum?.let(update),
+                        albums = mutableLibrary.value.albums.map(update),
+                        artistAlbums = mutableLibrary.value.artistAlbums.map(update),
+                        home = mutableLibrary.value.home.copy(recentAlbums = mutableLibrary.value.home.recentAlbums.map(update)),
+                    )
+                }
+                .onFailure { mutableState.value = mutableState.value.copy(error = libraryError(it)) }
+        }
+    }
+
+    fun rateArtist(id: String, rating: Int) {
+        if (rating !in 0..5) return
+        viewModelScope.launch {
+            runCatching { activeCatalog.setArtistRating(id, rating) }
+                .onSuccess {
+                    val update: (Artist) -> Artist = { if (it.id == id) it.copy(rating = rating) else it }
+                    mutableLibrary.value = mutableLibrary.value.copy(
+                        selectedArtist = mutableLibrary.value.selectedArtist?.let(update),
+                        artists = mutableLibrary.value.artists.map(update),
                     )
                 }
                 .onFailure { mutableState.value = mutableState.value.copy(error = libraryError(it)) }

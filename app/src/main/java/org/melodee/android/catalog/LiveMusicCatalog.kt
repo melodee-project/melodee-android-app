@@ -356,6 +356,24 @@ class LiveMusicCatalog(
         artistsById[artistId]?.let { artistsById[artistId] = it.copy(isStarred = favorite) }
     }
 
+    override suspend fun setTrackRating(trackId: String, rating: Int) {
+        require(rating in 0..5)
+        session.authorized { origin, token -> api.setSongRating(origin, token, trackId, rating) }
+        tracksById[trackId]?.let { tracksById[trackId] = it.copy(rating = rating) }
+    }
+
+    override suspend fun setAlbumRating(albumId: String, rating: Int) {
+        require(rating in 0..5)
+        session.authorized { origin, token -> api.setAlbumRating(origin, token, albumId, rating) }
+        albumsById[albumId]?.let { albumsById[albumId] = it.copy(rating = rating) }
+    }
+
+    override suspend fun setArtistRating(artistId: String, rating: Int) {
+        require(rating in 0..5)
+        session.authorized { origin, token -> api.setArtistRating(origin, token, artistId, rating) }
+        artistsById[artistId]?.let { artistsById[artistId] = it.copy(rating = rating) }
+    }
+
     override suspend fun searchDomain(query: String, page: Int, pageSize: Int): SearchResults {
         val context = context()
         val response = session.authorized { origin, token -> api.search(origin, token, query, pageSize, page) }

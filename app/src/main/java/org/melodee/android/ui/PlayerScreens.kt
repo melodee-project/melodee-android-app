@@ -61,7 +61,9 @@ fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, favoriteIds: S
                     if (liked) "Remove from favorites" else "Add to favorites", tint = if (liked) Accent else SoftWhite)
             }
         }
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(8.dp))
+        RatingRow(track.rating, { vm.rateTrack(track.id, it) })
+        Spacer(Modifier.height(6.dp))
         Slider(value = scrubPosition ?: state.positionMs.toFloat(),
             onValueChange = { scrubPosition = it },
             valueRange = 0f..state.durationMs.toFloat().coerceAtLeast(1f),

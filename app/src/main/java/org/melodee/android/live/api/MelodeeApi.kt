@@ -253,6 +253,33 @@ class MelodeeApi(
         PagedDto.serializer(SongDto.serializer()),
     )
 
+    suspend fun setArtistRating(origin: ServerOrigin, accessToken: String, id: String, rating: Int) {
+        require(rating in 0..5)
+        val request = authorized(
+            origin, accessToken,
+            origin.baseUrl.newBuilder().addPathSegments("api/v1/artists/setrating/$id/$rating").build(),
+        ).post(ByteArray(0).toRequestBody(null)).build()
+        executeNoContent(request)
+    }
+
+    suspend fun setAlbumRating(origin: ServerOrigin, accessToken: String, id: String, rating: Int) {
+        require(rating in 0..5)
+        val request = authorized(
+            origin, accessToken,
+            origin.baseUrl.newBuilder().addPathSegments("api/v1/albums/setrating/$id/$rating").build(),
+        ).post(ByteArray(0).toRequestBody(null)).build()
+        executeNoContent(request)
+    }
+
+    suspend fun setSongRating(origin: ServerOrigin, accessToken: String, id: String, rating: Int) {
+        require(rating in 0..5)
+        val request = authorized(
+            origin, accessToken,
+            origin.baseUrl.newBuilder().addPathSegments("api/v1/songs/setrating/$id/$rating").build(),
+        ).post(ByteArray(0).toRequestBody(null)).build()
+        executeNoContent(request)
+    }
+
     suspend fun setArtistStarred(origin: ServerOrigin, accessToken: String, id: String, starred: Boolean) {
         val request = authorized(
             origin, accessToken,

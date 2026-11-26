@@ -16,6 +16,7 @@ object LiveMediaItems {
     private const val KEY_ALBUM_ID = "melodee.albumId"
     private const val KEY_DURATION = "melodee.durationMs"
     private const val KEY_UPDATED = "melodee.updatedAt"
+    private const val KEY_RATING = "melodee.rating"
 
     fun mediaItem(track: Track): MediaItem = MediaItem.Builder()
         .setMediaId(track.mediaId())
@@ -35,6 +36,7 @@ object LiveMediaItems {
                     putString(KEY_ALBUM_ID, track.albumId)
                     putLong(KEY_DURATION, track.durationMs)
                     putString(KEY_UPDATED, track.updatedAt)
+                    putInt(KEY_RATING, track.rating)
                 })
                 .build(),
         )
@@ -59,6 +61,7 @@ object LiveMediaItems {
             mode = CatalogMode.LIVE,
             revision = extras?.getString(KEY_REVISION).orEmpty().ifBlank { "unknown" },
             updatedAt = extras?.getString(KEY_UPDATED).orEmpty(),
+            rating = extras?.getInt(KEY_RATING, 0) ?: 0,
         )
     }
 
