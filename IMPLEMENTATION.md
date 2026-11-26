@@ -47,7 +47,7 @@ If a requirement cannot be completed, record the exact missing dependency, faile
 
 **Tasks:**
 
-1. Produce `docs/api/CONTRACT.md` and a feature capability matrix with exact route/method, request/response schemas, authentication, errors, pagination and version provenance.
+1. Produce `docs/api/CONTRACT.md` and a feature capability matrix with exact route/method, request/response schemas, authentication, errors, pagination and version provenance. A captured OpenAPI reference snapshot is available at [docs/api/openapi-v1.json](docs/api/openapi-v1.json) with provenance and known omissions in [docs/api/README.md](docs/api/README.md); it is an input to this audit, not a substitute for it.
 2. Capture sanitized fixtures for login, renewal, revocation, catalog, search, playlists, favorites, artwork, stream URL retrieval, HEAD and range requests.
 3. Verify URL expiry, client-IP binding, redirect behavior, accepted codecs, seek behavior and content identity/revision.
 4. Resolve refresh-token rotation ambiguity with the server's documented behavior. Identify any required server change separately; never silently loosen replay protection.

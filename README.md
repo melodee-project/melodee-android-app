@@ -70,6 +70,7 @@ gradle/               Wrapper and pinned dependency catalog
 design/branding/      Supplied Melodee logo
 design/reference/     Selected mockup and supersession notes
 docs/adr/             Architecture decision records
+docs/api/             Captured native API OpenAPI reference and provenance
 docs/design/          Design system and screen behavior
 PRD.md                Product requirements and acceptance scenarios
 SPEC.md               Technical architecture and contracts
@@ -101,6 +102,8 @@ After phone playback is verified, follow Google's [Desktop Head Unit setup](http
 ## Before connecting a real server
 
 Follow Phase 1 in [IMPLEMENTATION.md](IMPLEMENTATION.md). Pin the exact native Melodee API revision and audit auth rotation, catalog schemas, signed stream URLs and range responses. Then implement the live repository and encrypted credential store. Do not paste production credentials into source, Gradle properties or issue reports.
+
+A captured OpenAPI reference snapshot from the local API project is stored at [docs/api/openapi-v1.json](docs/api/openapi-v1.json), with provenance and known gaps in [docs/api/README.md](docs/api/README.md). It is an input to the contract audit, not an approved live contract; the upstream document is known to omit some routes.
 
 ## Stack and compatibility
 
