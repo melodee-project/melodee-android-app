@@ -17,14 +17,31 @@ The repository is a real Android Studio starting point, not the completed produc
 | Prefetch | Pure Kotlin context-aware planner and behavior tests | Actual network executor, range completeness, eviction priority and throughput tuning |
 | Auth | Pure Kotlin coordination contracts and tests | Native API adapter, Keystore-backed atomic persistence and live refresh scheduling |
 | Cache identity | Scoped stable identity contract | Actual disk cache, invalidation, low-storage behavior and migration |
-| Server connection | Explicitly pending; no fake successful login | Pin/audit native API and integrate real authentication/catalog/streaming |
-| Docs | PRD, SPEC, phased plan, ADRs and visual rules | Update with implementation evidence after every phase |
+| Server connection | Live native API client, secure session store, catalog, queue persistence and signed streaming implemented against deterministic fixtures | Authorised live deployment/account audit, real expiry/IP/range/endurance qualification |
+| Docs | PRD, SPEC, phased plan, ADRs, visual rules and captured API reference | Update with implementation evidence after every phase |
 
 This is the intended starter boundary; [VALIDATION.md](VALIDATION.md) is authoritative for checks actually executed. A feature's presence in SPEC is not evidence that it is implemented. Do not convert a planned row into “done” based only on a class or a passing mock test.
 
 ### Current build baseline
 
 Gradle 9.6.1 (official wrapper and checksum), Android Gradle Plugin 9.5.3 with built-in Kotlin, Kotlin 2.4.21, KSP 2.3.14, JDK 21, compile/target SDK 36 and minimum SDK 29. The 2026-11-26 toolchain modernization is recorded in [ADR-0010](docs/adr/0010-modern-build-toolchain.md) and [TOOLCHAIN-UPGRADE-RESULTS.md](TOOLCHAIN-UPGRADE-RESULTS.md); [VALIDATION.md](VALIDATION.md) records the re-run evidence. Release signing/publication, Android Auto DHU and physical-vehicle qualification, and live-server integration remain separate outstanding work.
+
+### Live integration status (2026-11-26)
+
+The native API integration is implemented on this branch against the captured contract and
+sanitised fixtures. It is **not** a live-server or vehicle qualification.
+
+| Phase | Status | Evidence / remaining work |
+|---|---|---|
+| 0 Baseline | Complete | Build, unit tests, lint, demo emulator smoke test. |
+| 1 Contract | Local baseline complete; live audit blocked | [CONTRACT.md](docs/api/CONTRACT.md), [OpenAPI reference](docs/api/openapi-v1.json) and [fixtures](docs/api/fixtures/README.md). No authorised live deployment/account was supplied. |
+| 2 Auth/networking | Implemented and fixture-tested | OkHttp/kotlinx.serialization, `KeystoreSessionStore`, `HttpTokenRefresher`, single-flight `SessionCoordinator`, `LiveSessionManager`; 23 app unit tests cover transport/rotation/storage contracts; 4 Keystore instrumentation tests. Live refresh-rotation recovery remains an open server contract. |
+| 3 Catalog/queue | Implemented for the core phone scope | Live albums/artists/songs/search/playlists/liked songs, account-scoped Room metadata and queue snapshots, search cancellation, live album/playlist playback, favorites mutation. Artist detail UI and advanced discovery remain limited. |
+| 4 Playback/streams | Implemented and fixture-tested | `AudioCache` with `SimpleCache`/`CacheDataSource`/`ResolvingDataSource`, stable track identity, signed URL re-resolution on cache miss, one service-owned ExoPlayer/session. Real expiry/IP/range/endurance not qualified. |
+| 5 Prefetch | Planner + executor implemented | `PrefetchExecutor` uses `CacheWriter`, hard byte ceiling, queue/account cancellation, current-first and bounded forward planning; unit-tested. Real disk-full/large-FLAC/dead-zone measurements remain. |
+| 6 Android Auto | Live hierarchy/search implemented | Same service/session, live roots, album expansion, search and deterministic rejection of unknown IDs. DHU and physical vehicle not run. |
+| 7 Polish/diagnostics | Partial | Connection/loading/empty/error/sign-out states and accessible labels added. Structured diagnostic export and measured accessibility/performance passes remain. |
+| 8 Qualification/release | Not complete | Independent live/DHU/vehicle/endurance review, signing and publication remain outstanding. |
 
 ## 2. Delivery rules
 
@@ -37,7 +54,7 @@ If a requirement cannot be completed, record the exact missing dependency, faile
 ## 3. Phase 0 — Establish the reproducible baseline
 
 **Inputs:** This repository and pinned tooling.  
-**Tasks:** Open root in Android Studio, install required SDK, sync, run `:core:test`, `:app:assembleDebug`, Android Lint and an emulator smoke test. Inspect the actual service/controller code and demo catalog. Confirm launcher label/icon, no network dependency for demo playback and no hidden credentials. Record OS, JDK, SDK, emulator and results.
+**Tasks:** Open root in Android Studio, install required SDK, sync, run `:core:test`, `:app:assembleDebug`, Android Lint and an emulator smoke test. Inspect the actual service/controller code and demo catalog. Confirm launcher label/icon, no network dependency for demo playback and no hidden credentials. Record OS, JDK, SDK, emulator and results. The live integration validation in [VALIDATION.md](VALIDATION.md) now supplements this baseline.
 
 **Exit evidence:** Reproducible debug APK, test reports, screenshots of actual app and validation record. Do not assume a historical validation result applies after changes.
 
@@ -47,7 +64,7 @@ If a requirement cannot be completed, record the exact missing dependency, faile
 
 **Tasks:**
 
-1. Produce `docs/api/CONTRACT.md` and a feature capability matrix with exact route/method, request/response schemas, authentication, errors, pagination and version provenance.
+1. Produce `docs/api/CONTRACT.md` and a feature capability matrix with exact route/method, request/response schemas, authentication, errors, pagination and version provenance. A captured OpenAPI reference snapshot is available at [docs/api/openapi-v1.json](docs/api/openapi-v1.json) with provenance and known omissions in [docs/api/README.md](docs/api/README.md); it is an input to this audit, not a substitute for it.
 2. Capture sanitized fixtures for login, renewal, revocation, catalog, search, playlists, favorites, artwork, stream URL retrieval, HEAD and range requests.
 3. Verify URL expiry, client-IP binding, redirect behavior, accepted codecs, seek behavior and content identity/revision.
 4. Resolve refresh-token rotation ambiguity with the server's documented behavior. Identify any required server change separately; never silently loosen replay protection.

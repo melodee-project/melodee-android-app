@@ -54,8 +54,13 @@ class SessionCoordinator(
         mutableState.value = AuthenticationState.READY
     }
 
-    /** The Android integration also cancels playback and deletes the account's audio cache. */
-    suspend fun logout() = mutex.withLock {
+    /**
+     * Clears local credentials before returning. The returned pair is only for a
+     * best-effort server revocation in the caller; never log or persist it after this.
+     * The Android integration also cancels playback and deletes the account's audio cache.
+     */
+    suspend fun logout(): TokenBundle? = mutex.withLock {
+        val previous = record?.tokens
         store.write(null)
         accountEpoch++
         inFlight?.cancel()
@@ -65,6 +70,7 @@ class SessionCoordinator(
         nextRetryMillis = 0
         reauthenticationReason = null
         mutableState.value = AuthenticationState.SIGNED_OUT
+        previous
     }
 
     /**
