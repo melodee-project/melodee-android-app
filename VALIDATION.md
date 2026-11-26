@@ -35,6 +35,10 @@ Tools 36.0.0; minimum API 29; Pixel 9 Pro XL AVD running API 37.
 | Queue/position restoration | **PASS** | After force-stop and relaunch the Open Road queue returned at its saved position, paused. |
 | Configuration cache evaluation | **PASS, not enabled** | Entries stored and reused for assemble, test, lint, release and connected-test tasks; the flag is left off to preserve the documented conservative build defaults. |
 
+Before changing versions, the original Gradle 8.13 / AGP 8.13.2 build also passed
+`:app:connectedDebugAndroidTest` on the same API 37 emulator (**1/1 test, 6.983 s**),
+providing a pre-migration regression baseline.
+
 Android Auto manifest/packaged-artifact checks passed: the merged and packaged manifest
 retains the MediaLibraryService/MediaBrowserService declarations, `MEDIA_PLAY_FROM_SEARCH`,
 media playback foreground service type, MediaButtonReceiver, artwork provider and the

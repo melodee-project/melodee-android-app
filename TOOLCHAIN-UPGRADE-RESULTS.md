@@ -140,7 +140,7 @@ No warning was suppressed and no lint/compiler diagnostic was globally disabled.
 |---|---|---|---|---|
 | `./gradlew --version` | JDK 21, Gradle 8.13 | 0 | — | Gradle 8.13, AGP 8.13.2 project. |
 | `./gradlew :core:test :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug` | JDK 21, Gradle 8.13 | 0 | 31 core tests passed; 0 failed/skipped | Build succeeded in 54s. Lint: 0 errors, 27 warnings. Log: `/tmp/toolchain-logs/baseline-build.log`. |
-| Baseline instrumentation | — | — | — | Not re-run in this session. The starter's prior instrumented result is recorded in VALIDATION.md; post-upgrade instrumentation is recorded below. |
+| Baseline instrumentation | API 37 emulator | 0 | 1 / 1 / 0 / 0 | `MediaLibrarySmokeTest` passed on the original Gradle 8.13 / AGP 8.13.2 build (6.983 s). Evidence: `/tmp/toolchain-logs/baseline-connected.log`. |
 
 ### Post-upgrade verification
 
@@ -195,6 +195,8 @@ No warning was suppressed and no lint/compiler diagnostic was globally disabled.
 | `NotShrinkingResources` | 1 | Existing release policy keeps resource shrinking disabled. |
 
 No lint error or fatal issue remains. The earlier `ObsoleteLintCustomCheck` (skipped lifecycle lint checks) was eliminated by the Lifecycle 2.10.0 compatibility update.
+
+AGP also prints an informational packaging message that `libandroidx.graphics.path.so` and `libdatastore_shared_counter.so` cannot be stripped and are packaged as-is. These are prebuilt dependency libraries; the message is not a warning or error and does not change the packaged artifact.
 
 ### Artifact checks
 
