@@ -79,10 +79,10 @@ fun MelodeeApp(vm: PlayerViewModel = viewModel()) {
                 HomeScreen(vm, playback, library, { navigate("album/$it") }, { navigate("playlist/$it") },
                     { navigate("settings") }, { navigate("library") })
             }
-            composable("search") { SearchScreen(vm, playback, library) }
+            composable("search") { SearchScreen(vm, playback, library) { navigate("artist/$it") } }
             composable("library") {
                 LibraryScreen(vm, preferences, playback, library,
-                    { navigate("album/$it") }, { navigate("playlist/$it") })
+                    { navigate("album/$it") }, { navigate("playlist/$it") }, { navigate("artist/$it") })
             }
             composable("settings") {
                 SettingsScreen(vm, preferences, library, { navigate("connect") })
@@ -93,6 +93,10 @@ fun MelodeeApp(vm: PlayerViewModel = viewModel()) {
             }
             composable("playlist/{id}") { entry ->
                 CollectionScreen(vm, playback, library, entry.arguments?.getString("id").orEmpty(), true) { nav.popBackStack() }
+            }
+            composable("artist/{id}") { entry ->
+                ArtistScreen(vm, playback, library, entry.arguments?.getString("id").orEmpty(),
+                    { nav.popBackStack() }, { navigate("album/$it") })
             }
             composable("player") {
                 NowPlayingScreen(vm, playback, library.favorites.map { it.id }.toSet(), { nav.popBackStack() }, { navigate("queue") })

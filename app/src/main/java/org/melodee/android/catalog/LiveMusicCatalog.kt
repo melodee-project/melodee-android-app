@@ -254,6 +254,17 @@ class LiveMusicCatalog(
         }
     }
 
+    override suspend fun artist(id: String): Artist? {
+        artistsById[id]?.let { return it }
+        val context = context()
+        return try {
+            val dto = session.authorized { origin, token -> api.artist(origin, token, id) }
+            dto.toDomain(context.origin).also { artistsById[id] = it }
+        } catch (error: Exception) {
+            throw error
+        }
+    }
+
     override suspend fun artistAlbums(id: String): List<Album> {
         val context = context()
         val pageDto = session.authorized { origin, token -> api.artistAlbums(origin, token, id) }

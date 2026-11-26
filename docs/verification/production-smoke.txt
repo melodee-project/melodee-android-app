@@ -1,0 +1,36 @@
+Production native-v1 validation
+Date: 2026-11-26
+Server: melodee-server 0.3.0 at the supplied production origin
+Device: Pixel 9 Pro XL API 37 emulator
+
+Python read-only smoke (scripts/melodee_prod_smoke.py):
+- readiness 200
+- password authentication 200
+- /api/v1/user/me 200
+- album list 200 (5 albums)
+- album songs 200 (12 songs on the first album)
+- stream HEAD/range: 206 audio/mpeg, 1024 bytes for bytes=0-1023
+
+Android app validation with the authorised temporary test account:
+- Settings → Connect accepted the server origin and password login.
+- Home rendered live catalog data (account badge, production album artwork and recent tracks).
+- Library rendered production albums and artists; Artists tab loaded the production artist list.
+- Artist detail rendered production artwork, album and song lists.
+- Album detail rendered production artwork, metadata and ordered track list.
+- Play album started production audio; media session reported PLAYING and position advanced.
+- Now Playing rendered live title/artist/artwork, elapsed/total time and transport controls.
+- Queue rendered all 15 production tracks with reorder/remove actions.
+- Search for "Billie" returned production song results and artwork.
+- Settings showed the signed-in production account and Sign out action.
+- Google: server returned "Google authentication is not enabled"; the app shows only the
+  explicit placeholder action and does not fake Google sign-in.
+
+No credentials, access tokens, refresh tokens or signed URLs are recorded here. The temporary
+credentials file was removed from the device and app data was cleared after validation.
+
+Not covered by this run:
+- refresh-token rotation/ambiguity over the network
+- token expiry mid-song, network transitions, dead zones or endurance
+- DHU/physical vehicle, focus/call handling
+- full playlist flow against production
+- release-signed artifact

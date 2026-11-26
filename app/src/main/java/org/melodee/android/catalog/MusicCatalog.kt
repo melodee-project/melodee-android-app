@@ -37,6 +37,7 @@ interface MusicCatalog {
     suspend fun album(id: String): Album?
     suspend fun albumTracks(id: String): List<Track>
     suspend fun artists(page: Int = 1, pageSize: Int = 50): List<Artist>
+    suspend fun artist(id: String): Artist?
     suspend fun artistAlbums(id: String): List<Album>
     suspend fun artistTracks(id: String): List<Track>
     suspend fun playlists(page: Int = 1, pageSize: Int = 50): List<Playlist>

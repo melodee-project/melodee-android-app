@@ -18,7 +18,7 @@ import org.melodee.android.playback.PlayerViewModel
 
 @Composable
 fun ConnectionScreen(vm: PlayerViewModel, onBack: () -> Unit) {
-    var origin by remember { mutableStateOf("https://") }
+    var origin by remember { mutableStateOf("") }
     var userName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }

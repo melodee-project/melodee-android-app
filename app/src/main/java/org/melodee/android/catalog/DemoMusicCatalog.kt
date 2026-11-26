@@ -137,6 +137,8 @@ class DemoMusicCatalog(private val demo: DemoCatalog) : MusicCatalog {
 
     override suspend fun artists(page: Int, pageSize: Int): List<Artist> = emptyList()
 
+    override suspend fun artist(id: String): Artist? = null
+
     override suspend fun artistAlbums(id: String): List<Album> = emptyList()
 
     override suspend fun artistTracks(id: String): List<Track> = emptyList()

@@ -58,7 +58,12 @@ data class LibraryUiState(
     val favorites: List<Track> = emptyList(),
     val selectedAlbum: Album? = null,
     val selectedPlaylist: Playlist? = null,
+    val selectedArtist: Artist? = null,
     val selectedTracks: List<Track> = emptyList(),
+    val artistAlbums: List<Album> = emptyList(),
+    val artistTracks: List<Track> = emptyList(),
+    val selectionLoading: Boolean = false,
+    val selectionError: String? = null,
     val search: SearchResults = SearchResults(),
     val searchQuery: String = "",
     val searchLoading: Boolean = false,
@@ -125,7 +130,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun reloadLibrary() {
         libraryJob?.cancel()
         libraryJob = viewModelScope.launch {
-            mutableLibrary.value = mutableLibrary.value.copy(loading = true, error = null)
+            mutableLibrary.value = mutableLibrary.value.copy(
+                loading = true, error = null, selectedAlbum = null, selectedPlaylist = null,
+                selectedArtist = null, selectedTracks = emptyList(), artistAlbums = emptyList(),
+                artistTracks = emptyList(), selectionLoading = false, selectionError = null,
+            )
             try {
                 activeCatalog = container.activeCatalog()
                 val account = container.session.currentAccount()
@@ -285,14 +294,25 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         selectionJob?.cancel()
         selectionJob = viewModelScope.launch {
             mutableLibrary.value = mutableLibrary.value.copy(
-                selectedAlbum = null, selectedPlaylist = null, selectedTracks = emptyList(), error = null,
+                selectedAlbum = null, selectedPlaylist = null, selectedArtist = null,
+                selectedTracks = emptyList(), artistAlbums = emptyList(), artistTracks = emptyList(),
+                selectionLoading = true, selectionError = null,
             )
-            val album = runCatching { activeCatalog.album(id) }.getOrNull()
-            val tracks = runCatching { activeCatalog.albumTracks(id) }.getOrElse { emptyList() }
-            mutableLibrary.value = mutableLibrary.value.copy(
-                selectedAlbum = album, selectedPlaylist = null, selectedTracks = tracks,
-                error = if (tracks.isEmpty()) "This album does not have any available tracks." else null,
-            )
+            try {
+                val album = activeCatalog.album(id) ?: throw IllegalStateException("Album not found")
+                val tracks = activeCatalog.albumTracks(id)
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    selectedAlbum = album, selectedPlaylist = null, selectedArtist = null,
+                    selectedTracks = tracks, artistAlbums = emptyList(), artistTracks = emptyList(),
+                    selectionLoading = false, selectionError = null,
+                )
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    selectionLoading = false, selectionError = libraryError(error),
+                )
+            }
         }
     }
 
@@ -300,14 +320,52 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         selectionJob?.cancel()
         selectionJob = viewModelScope.launch {
             mutableLibrary.value = mutableLibrary.value.copy(
-                selectedAlbum = null, selectedPlaylist = null, selectedTracks = emptyList(), error = null,
+                selectedAlbum = null, selectedPlaylist = null, selectedArtist = null,
+                selectedTracks = emptyList(), artistAlbums = emptyList(), artistTracks = emptyList(),
+                selectionLoading = true, selectionError = null,
             )
-            val playlist = runCatching { activeCatalog.playlist(id) }.getOrNull()
-            val tracks = runCatching { activeCatalog.playlistTracks(id) }.getOrElse { emptyList() }
+            try {
+                val playlist = activeCatalog.playlist(id) ?: throw IllegalStateException("Playlist not found")
+                val tracks = activeCatalog.playlistTracks(id)
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    selectedAlbum = null, selectedPlaylist = playlist, selectedArtist = null,
+                    selectedTracks = tracks, artistAlbums = emptyList(), artistTracks = emptyList(),
+                    selectionLoading = false, selectionError = null,
+                )
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    selectionLoading = false, selectionError = libraryError(error),
+                )
+            }
+        }
+    }
+
+    fun openArtist(id: String) {
+        selectionJob?.cancel()
+        selectionJob = viewModelScope.launch {
             mutableLibrary.value = mutableLibrary.value.copy(
-                selectedAlbum = null, selectedPlaylist = playlist, selectedTracks = tracks,
-                error = if (tracks.isEmpty()) "This playlist does not have any available tracks." else null,
+                selectedAlbum = null, selectedPlaylist = null, selectedArtist = null,
+                selectedTracks = emptyList(), artistAlbums = emptyList(), artistTracks = emptyList(),
+                selectionLoading = true, selectionError = null,
             )
+            try {
+                val artist = activeCatalog.artist(id) ?: throw IllegalStateException("Artist not found")
+                val albums = activeCatalog.artistAlbums(id)
+                val tracks = activeCatalog.artistTracks(id)
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    selectedAlbum = null, selectedPlaylist = null, selectedArtist = artist,
+                    selectedTracks = emptyList(), artistAlbums = albums, artistTracks = tracks,
+                    selectionLoading = false, selectionError = null,
+                )
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    selectionLoading = false, selectionError = libraryError(error),
+                )
+            }
         }
     }
 

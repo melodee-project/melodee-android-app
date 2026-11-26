@@ -2,6 +2,8 @@ package org.melodee.android.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -144,7 +146,7 @@ private fun PlaylistTile(playlist: Playlist, colors: List<Color>, mode: CatalogM
 }
 
 @Composable
-fun SearchScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryUiState) {
+fun SearchScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryUiState, onArtist: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { vm.search(query) }
     val results = library.search
@@ -225,6 +227,7 @@ fun SearchScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Librar
                 item { SectionHeader("Artists") }
                 items(results.artists, key = { it.id }) { artist ->
                     SettingRow(Icons.Rounded.Person, artist.name, "${artist.albumCount} albums",
+                        { onArtist(artist.id) },
                         trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = Muted) })
                 }
             }
@@ -250,7 +253,7 @@ private fun AlbumRow(album: Album, onClick: () -> Unit) {
 @Composable
 fun LibraryScreen(vm: PlayerViewModel, settings: org.melodee.android.data.UserSettings,
     playback: PlaybackUiState, library: LibraryUiState,
-    onAlbum: (String) -> Unit, onPlaylist: (String) -> Unit) {
+    onAlbum: (String) -> Unit, onPlaylist: (String) -> Unit, onArtist: (String) -> Unit) {
     var selected by rememberSaveable { mutableStateOf("Albums") }
     val demoFavorites = library.tracks.filter { it.id in settings.favorites }
     val favorites = if (library.mode == CatalogMode.DEMO) demoFavorites else library.favorites
@@ -269,8 +272,9 @@ fun LibraryScreen(vm: PlayerViewModel, settings: org.melodee.android.data.UserSe
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Albums", "Playlists", "Songs", "Favorites").forEach { tab ->
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Albums", "Artists", "Playlists", "Songs", "Favorites").forEach { tab ->
                     FilterChip(selected = selected == tab, onClick = { selected = tab }, label = { Text(tab) })
                 }
             }
@@ -292,6 +296,14 @@ fun LibraryScreen(vm: PlayerViewModel, settings: org.melodee.android.data.UserSe
                         }
                         if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
+                }
+            }
+            "Artists" -> {
+                if (library.artists.isEmpty()) item { EmptyPanel("No artists yet", "Your server library will appear here.") }
+                items(library.artists, key = { it.id }) { artist ->
+                    SettingRow(Icons.Rounded.Person, artist.name, "${artist.albumCount} albums · ${artist.songCount} songs",
+                        { onArtist(artist.id) },
+                        trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = Muted) })
                 }
             }
             "Playlists" -> {
@@ -368,14 +380,82 @@ fun CollectionScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Li
                 }
             }
         }
-        if (library.error != null && tracks.isEmpty()) {
-            item { ErrorPanel(library.error, vm::refresh) }
-        } else if (tracks.isEmpty()) {
+        if (library.selectionLoading && tracks.isEmpty()) {
             item { LoadingPanel("Loading tracks…") }
+        } else if (library.selectionError != null && tracks.isEmpty()) {
+            item { ErrorPanel(library.selectionError, vm::refresh) }
+        } else if (tracks.isEmpty()) {
+            item { EmptyPanel("No tracks available", "This collection does not contain readable tracks for this account.") }
         } else {
             items(tracks, key = { "${it.id}-${tracks.indexOf(it)}" }) { track ->
                 TrackRow(track, { vm.play(tracks.map(Track::id), tracks.indexOf(track)) },
                     playback.current?.id == track.id)
+            }
+        }
+    }
+}
+
+@Composable
+fun ArtistScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryUiState,
+    id: String, onBack: () -> Unit, onAlbum: (String) -> Unit) {
+    LaunchedEffect(id) { vm.openArtist(id) }
+    val artist = library.selectedArtist
+    val tracks = library.artistTracks
+    val albums = library.artistAlbums
+    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { PageHeader("Artist", onBack = onBack) }
+        if (library.selectionLoading && artist == null) {
+            item { LoadingPanel("Loading artist…") }
+        } else if (artist == null) {
+            item { ErrorPanel(library.selectionError ?: "Artist not found", { vm.openArtist(id) }) }
+        } else {
+            item {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Cover(artist.artwork, Modifier.size(112.dp), "${artist.name} artwork")
+                    Column(Modifier.weight(1f).padding(start = 18.dp)) {
+                        Text(artist.name, style = MaterialTheme.typography.headlineMedium)
+                        Text("${artist.albumCount} albums · ${artist.songCount} songs",
+                            color = Muted, modifier = Modifier.padding(top = 6.dp))
+                        if (tracks.isNotEmpty()) {
+                            Button(onClick = { vm.play(tracks.map(Track::id)) }, modifier = Modifier.padding(top = 14.dp)) {
+                                Icon(Icons.Rounded.PlayArrow, null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Play artist")
+                            }
+                        }
+                    }
+                }
+                if (!artist.biography.isNullOrBlank()) {
+                    Text(artist.biography, color = Muted, style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 16.dp))
+                }
+            }
+            if (albums.isNotEmpty()) {
+                item { SectionHeader("Albums") }
+                items(albums.chunked(2), key = { row -> "artist-albums:" + row.joinToString("|") { it.id } }) { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        row.forEach { album ->
+                            Column(Modifier.weight(1f).clickable { onAlbum(album.id) }) {
+                                Cover(album.artwork, Modifier.fillMaxWidth().aspectRatio(1f), "${album.title} artwork")
+                                Text(album.title, style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 10.dp))
+                                Text(album.releaseYear.takeIf { it > 0 }?.toString() ?: album.artist,
+                                    color = Muted, fontSize = 11.sp, maxLines = 1)
+                            }
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+            if (tracks.isNotEmpty()) {
+                item { SectionHeader("Songs") }
+                items(tracks, key = { it.id }) { track ->
+                    TrackRow(track, { vm.play(tracks.map(Track::id), tracks.indexOf(track)) },
+                        playing = playback.current?.id == track.id)
+                }
+            } else if (!library.selectionLoading) {
+                item { EmptyPanel("No songs available", "This artist has no readable tracks for this account.") }
             }
         }
     }

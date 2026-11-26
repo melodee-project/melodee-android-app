@@ -147,10 +147,19 @@ class PlaybackService : MediaLibraryService() {
             var previous: String? = null
             container.accountFlow.distinctUntilChanged().collect { account ->
                 val current = account?.let { "${it.serverId}|${it.accountId}" }
-                if (previous != null && previous != current) {
+                if (previous != current) {
                     container.prefetchExecutor.cancel()
                     cachedCatalog = null
-                        accountScope = null
+                    accountScope = null
+                    // Do not let a demo fixture queue survive a transition into a live account.
+                    if (current != null && player.mediaItemCount > 0 &&
+                        (0 until player.mediaItemCount).any {
+                            !player.getMediaItemAt(it).mediaId.startsWith("live:")
+                        }
+                    ) {
+                        player.stop()
+                        player.clearMediaItems()
+                    }
                 }
                 previous = current
             }

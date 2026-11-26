@@ -157,6 +157,9 @@ class MelodeeApi(
         PagedDto.serializer(ArtistDto.serializer()),
     )
 
+    suspend fun artist(origin: ServerOrigin, accessToken: String, id: String): ArtistDto =
+        jsonResponse(authorizedGet(origin, accessToken, "api/v1/artists/$id"), ArtistDto.serializer())
+
     suspend fun artistAlbums(
         origin: ServerOrigin,
         accessToken: String,
