@@ -11,7 +11,6 @@ import org.melodee.android.live.api.SongDto
 import org.melodee.android.model.Album
 import org.melodee.android.model.Artwork
 import org.melodee.android.model.Artist
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.Playlist
 import org.melodee.android.model.SearchResults
 import org.melodee.android.model.Track
@@ -36,7 +35,6 @@ internal fun ArtistDto.toDomain(origin: ServerOrigin): Artist = Artist(
     albumCount = albumCount,
     songCount = songCount,
     biography = biography,
-    mode = CatalogMode.LIVE,
     isStarred = userStarred,
     rating = userRating,
 )
@@ -51,7 +49,6 @@ internal fun AlbumDto.toDomain(origin: ServerOrigin, trackIds: List<String> = em
     artwork = artwork(origin, imageUrl, thumbnailUrl),
     songCount = songCount,
     trackIds = trackIds,
-    mode = CatalogMode.LIVE,
     updatedAt = revisionOf(updatedAt, createdAt, 0),
     isStarred = userStarred,
     rating = userRating,
@@ -67,7 +64,6 @@ internal fun SongDto.toDomain(origin: ServerOrigin): Track = Track(
     trackNumber = songNumber,
     bitrateKbps = bitrate,
     artwork = artwork(origin, imageUrl, thumbnailUrl),
-    mode = CatalogMode.LIVE,
     revision = revisionOf(updatedAt, createdAt, bitrate),
     updatedAt = updatedAt,
     rating = userRating,
@@ -82,7 +78,6 @@ internal fun PlaylistDto.toDomain(origin: ServerOrigin, trackIds: List<String> =
     trackIds = trackIds,
     isPublic = isPublic,
     ownerName = owner?.username.orEmpty(),
-    mode = CatalogMode.LIVE,
 )
 
 internal fun SearchResponseDto.toDomain(origin: ServerOrigin): SearchResults = SearchResults(

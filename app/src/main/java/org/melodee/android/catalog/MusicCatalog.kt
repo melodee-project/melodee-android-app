@@ -3,20 +3,16 @@ package org.melodee.android.catalog
 import androidx.media3.common.MediaItem
 import org.melodee.android.model.Album
 import org.melodee.android.model.Artist
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.HomeFeed
 import org.melodee.android.model.Playlist
 import org.melodee.android.model.SearchResults
 import org.melodee.android.model.Track
 
 /**
- * The single catalog boundary used by the playback service, Android Auto and
- * phone UI. Demo and live implementations differ only in data source; both
- * expose the same stable IDs and Media3 metadata contract.
+ * The single live catalog boundary used by the playback service, Android Auto
+ * and phone UI. It exposes stable IDs and the Media3 metadata contract.
  */
 interface MusicCatalog {
-    val mode: CatalogMode
-
     /** Synchronous metadata reconstruction for controller-owned queue/player items. */
     fun trackFromMediaItem(item: MediaItem): Track?
 

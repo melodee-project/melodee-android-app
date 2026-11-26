@@ -5,7 +5,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.melodee.android.R
+import org.melodee.android.BuildConfig
 import org.melodee.android.live.api.AlbumDto
 import org.melodee.android.live.api.ArtistDto
 import org.melodee.android.live.api.MelodeeApi
@@ -20,7 +20,6 @@ import org.melodee.android.live.data.LiveCatalogCache
 import org.melodee.android.model.Album
 import org.melodee.android.model.Artwork
 import org.melodee.android.model.Artist
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.HomeFeed
 import org.melodee.android.model.Playlist
 import org.melodee.android.model.SearchResults
@@ -29,7 +28,7 @@ import org.melodee.core.auth.AccountScope
 
 /**
  * Authenticated native-v1 catalog. Metadata is cached per server/account; signed
- * stream URLs are never stored. Browse IDs are namespaced so a demo ID can never
+ * stream URLs are never stored. Browse IDs are namespaced so an external ID can never
  * be mistaken for a live ID.
  */
 class LiveMusicCatalog(
@@ -38,8 +37,6 @@ class LiveMusicCatalog(
     private val cache: LiveCatalogCache,
     private val allowInsecureLoopback: Boolean,
 ) : MusicCatalog {
-    override val mode = CatalogMode.LIVE
-
     private val lock = Mutex()
     private var loadedFor: String? = null
     private val albumsById = linkedMapOf<String, Album>()
@@ -48,6 +45,13 @@ class LiveMusicCatalog(
     private val tracksById = linkedMapOf<String, Track>()
     private val albumTrackIds = mutableMapOf<String, List<String>>()
     private val playlistTrackIds = mutableMapOf<String, List<String>>()
+    private val homeArtwork = resourceArtwork("drawable", "ic_auto_home")
+    private val libraryArtwork = resourceArtwork("drawable", "ic_auto_library")
+    private val albumsArtwork = resourceArtwork("drawable", "ic_auto_albums")
+    private val artistsArtwork = resourceArtwork("drawable", "ic_auto_artists")
+    private val songsArtwork = resourceArtwork("drawable", "ic_auto_songs")
+    private val playlistsArtwork = resourceArtwork("drawable", "ic_auto_playlists")
+    private val favoritesArtwork = resourceArtwork("drawable", "ic_auto_favorites")
 
     private data class Context(val account: AccountScope, val origin: ServerOrigin)
 
@@ -87,13 +91,13 @@ class LiveMusicCatalog(
     override suspend fun item(mediaId: String): MediaItem? {
         when (mediaId) {
             ROOT -> return node(ROOT, "Melodee")
-            HOME -> return node(HOME, "Home")
-            LIBRARY -> return node(LIBRARY, "Library")
-            ALBUMS -> return node(ALBUMS, "Albums")
-            ARTISTS -> return node(ARTISTS, "Artists")
-            SONGS -> return node(SONGS, "Songs")
-            PLAYLISTS -> return node(PLAYLISTS, "Playlists")
-            FAVORITES -> return node(FAVORITES, "Favorites")
+            HOME -> return node(HOME, "Home", artwork = homeArtwork)
+            LIBRARY -> return node(LIBRARY, "Library", artwork = libraryArtwork)
+            ALBUMS -> return node(ALBUMS, "Albums", artwork = albumsArtwork)
+            ARTISTS -> return node(ARTISTS, "Artists", artwork = artistsArtwork)
+            SONGS -> return node(SONGS, "Songs", artwork = songsArtwork)
+            PLAYLISTS -> return node(PLAYLISTS, "Playlists", artwork = playlistsArtwork)
+            FAVORITES -> return node(FAVORITES, "Favorites", artwork = favoritesArtwork)
         }
         if (mediaId.startsWith(TRACK_PREFIX)) {
             val id = mediaId.removePrefix(TRACK_PREFIX)
@@ -123,16 +127,24 @@ class LiveMusicCatalog(
         val safePage = page.coerceAtLeast(1)
         val safeSize = pageSize.coerceIn(1, 100)
         return when {
-            mediaId == ROOT -> listOf(node(HOME, "Home"), node(LIBRARY, "Library"),
-                node(PLAYLISTS, "Playlists"), node(FAVORITES, "Favorites"))
+            mediaId == ROOT -> listOf(
+                node(HOME, "Home", artwork = homeArtwork),
+                node(LIBRARY, "Library", artwork = libraryArtwork),
+                node(PLAYLISTS, "Playlists", artwork = playlistsArtwork),
+                node(FAVORITES, "Favorites", artwork = favoritesArtwork),
+            )
             mediaId == HOME -> {
                 val feed = home()
                 feed.recentAlbums.take(6).map(::albumNode) +
                     feed.playlists.take(4).map(::playlistNode) +
                     feed.recentTracks.take(8).map(::mediaItem)
             }
-            mediaId == LIBRARY -> listOf(node(ALBUMS, "Albums"), node(ARTISTS, "Artists"),
-                node(SONGS, "Songs"), node(FAVORITES, "Favorites"))
+            mediaId == LIBRARY -> listOf(
+                node(ALBUMS, "Albums", artwork = albumsArtwork),
+                node(ARTISTS, "Artists", artwork = artistsArtwork),
+                node(SONGS, "Songs", artwork = songsArtwork),
+                node(FAVORITES, "Favorites", artwork = favoritesArtwork),
+            )
             mediaId == ALBUMS -> albums(safePage, safeSize).map(::albumNode)
             mediaId == ARTISTS -> artists(safePage, safeSize).map(::artistNode)
             mediaId == SONGS -> tracks(safePage, safeSize).map(::mediaItem)
@@ -423,6 +435,9 @@ class LiveMusicCatalog(
         PLAYLIST_PREFIX + playlist.id, playlist.title, playlist.description,
         (playlist.artwork as? Artwork.Remote)?.url,
     )
+
+    private fun resourceArtwork(type: String, name: String): String =
+        "android.resource://${BuildConfig.APPLICATION_ID}/$type/$name"
 
     private fun node(id: String, title: String, subtitle: String? = null, artwork: String? = null): MediaItem =
         MediaItem.Builder()

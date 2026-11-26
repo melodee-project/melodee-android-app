@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.RoomDatabase
 
-/** Stable demo IDs only. Future live bookmarks must also include server/account identity. */
+/** Legacy row retained by the v1 schema; live queues are stored per account in queue_snapshot. */
 @Entity(tableName = "playback_bookmark")
 data class PlaybackBookmark(
     @PrimaryKey val id: Int = 1,

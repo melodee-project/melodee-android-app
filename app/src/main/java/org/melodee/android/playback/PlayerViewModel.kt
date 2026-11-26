@@ -24,7 +24,6 @@ import org.melodee.android.catalog.MusicCatalog
 import org.melodee.android.data.UserSettings
 import org.melodee.android.model.Album
 import org.melodee.android.model.Artist
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.HomeFeed
 import org.melodee.android.model.Playlist
 import org.melodee.android.model.SearchResults
@@ -46,7 +45,6 @@ data class PlaybackUiState(
 )
 
 data class LibraryUiState(
-    val mode: CatalogMode = CatalogMode.LIVE,
     val loading: Boolean = true,
     val authChecked: Boolean = false,
     val signedIn: Boolean = false,
@@ -183,36 +181,34 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val account = container.session.currentAccount()
                 if (account == null) {
                     mutableLibrary.value = LibraryUiState(
-                        mode = CatalogMode.LIVE, loading = false, authChecked = true, signedIn = false,
+                        loading = false, authChecked = true, signedIn = false,
                     )
                     return@launch
                 }
                 activeCatalog = container.liveCatalog
-                val mode = activeCatalog.mode
                 val home = runCatching { activeCatalog.home() }.getOrElse { HomeFeed() }
                 val albums = runCatching { activeCatalog.albums(1, ALBUM_PAGE_SIZE) }.getOrElse { emptyList() }
                 val artists = runCatching { activeCatalog.artists(1, ARTIST_PAGE_SIZE) }.getOrElse { emptyList() }
                 val playlists = runCatching { activeCatalog.playlists(1, PLAYLIST_PAGE_SIZE) }.getOrElse { emptyList() }
                 val tracks = runCatching { activeCatalog.tracks(1, TRACK_PAGE_SIZE) }.getOrElse { emptyList() }
                 val favorites = runCatching { activeCatalog.favorites(1, FAVORITE_PAGE_SIZE) }.getOrElse { emptyList() }
-                val live = mode == CatalogMode.LIVE
                 mutableLibrary.value = mutableLibrary.value.copy(
-                    mode = mode, loading = false, authChecked = true, signedIn = true,
+                    loading = false, authChecked = true, signedIn = true,
                     accountName = account.username, home = home, albums = albums, artists = artists,
                     playlists = playlists, tracks = tracks, favorites = favorites,
                     albumPage = 1, artistPage = 1, playlistPage = 1, trackPage = 1, favoritePage = 1,
-                    hasMoreAlbums = live && albums.size >= ALBUM_PAGE_SIZE,
-                    hasMoreArtists = live && artists.size >= ARTIST_PAGE_SIZE,
-                    hasMorePlaylists = live && playlists.size >= PLAYLIST_PAGE_SIZE,
-                    hasMoreTracks = live && tracks.size >= TRACK_PAGE_SIZE,
-                    hasMoreFavorites = live && favorites.size >= FAVORITE_PAGE_SIZE,
+                    hasMoreAlbums = albums.size >= ALBUM_PAGE_SIZE,
+                    hasMoreArtists = artists.size >= ARTIST_PAGE_SIZE,
+                    hasMorePlaylists = playlists.size >= PLAYLIST_PAGE_SIZE,
+                    hasMoreTracks = tracks.size >= TRACK_PAGE_SIZE,
+                    hasMoreFavorites = favorites.size >= FAVORITE_PAGE_SIZE,
                     loadingMoreAlbums = false, loadingMoreArtists = false, loadingMorePlaylists = false,
                     loadingMoreTracks = false, loadingMoreFavorites = false,
                     playlistTrackPage = 1, hasMorePlaylistTracks = false, loadingMorePlaylistTracks = false,
                     artistAlbumPage = 1, artistTrackPage = 1, hasMoreArtistAlbums = false,
                     hasMoreArtistTracks = false, loadingMoreArtistAlbums = false, loadingMoreArtistTracks = false,
                     searchPage = 1, hasMoreSearch = false, loadingMoreSearch = false,
-                    error = if (live && albums.isEmpty() && artists.isEmpty()) {
+                    error = if (albums.isEmpty() && artists.isEmpty()) {
                         "Melodee could not retrieve your catalog. Check the connection or sign in again."
                     } else null,
                 )

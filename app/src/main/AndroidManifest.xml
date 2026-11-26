@@ -37,11 +37,6 @@
         <receiver android:name="androidx.media3.session.MediaButtonReceiver" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MEDIA_BUTTON" /></intent-filter>
         </receiver>
-        <provider
-            android:name=".artwork.ArtworkProvider"
-            android:authorities="${applicationId}.artwork"
-            android:exported="true"
-            android:grantUriPermissions="true" />
         <meta-data android:name="com.google.android.gms.car.application" android:resource="@xml/automotive_app_desc" />
     </application>
 </manifest>

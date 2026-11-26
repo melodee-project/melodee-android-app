@@ -25,7 +25,7 @@ class LiveLibraryUiTest {
 
     @Before fun setUp() {
         app = ApplicationProvider.getApplicationContext()
-        server = MockMelodeeServer(InstrumentationRegistry.getInstrumentation().targetContext)
+        server = MockMelodeeServer(InstrumentationRegistry.getInstrumentation().context)
         runBlocking { app.container.session.logout() }
         val result = runBlocking { app.container.session.login(server.url, "alice", "secret") }
         assertTrue(result is LiveLoginResult.Success)

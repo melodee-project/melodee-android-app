@@ -4,13 +4,11 @@ import android.app.Application
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import org.melodee.android.data.DemoCatalog
 import org.melodee.android.data.PlaybackDatabase
 import org.melodee.android.data.UserPreferences
 
 class MelodeeApplication : Application() {
     val container by lazy { MelodeeContainer(this) }
-    val catalog by lazy { DemoCatalog(this) }
     val database by lazy {
         Room.databaseBuilder(this, PlaybackDatabase::class.java, "melodee.db")
             .addMigrations(MIGRATION_1_2)
@@ -20,7 +18,7 @@ class MelodeeApplication : Application() {
 }
 
 
-/** Adds account-scoped metadata and live queue storage without touching demo bookmarks. */
+/** Adds account-scoped metadata and live queue storage. */
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(

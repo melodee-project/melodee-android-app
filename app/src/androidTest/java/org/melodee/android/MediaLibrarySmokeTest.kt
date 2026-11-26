@@ -33,7 +33,7 @@ class MediaLibrarySmokeTest {
 
     @Before fun setUp() {
         app = ApplicationProvider.getApplicationContext()
-        server = MockMelodeeServer(InstrumentationRegistry.getInstrumentation().targetContext)
+        server = MockMelodeeServer(InstrumentationRegistry.getInstrumentation().context)
         runBlocking { app.container.session.logout() }
         val login = runBlocking { app.container.session.login(server.url, "alice", "secret") }
         assertTrue(login is LiveLoginResult.Success)

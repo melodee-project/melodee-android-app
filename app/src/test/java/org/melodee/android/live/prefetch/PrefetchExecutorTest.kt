@@ -12,7 +12,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.melodee.android.model.Artwork
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.Track
 import org.melodee.core.cache.CachedTrack
 import org.melodee.core.cache.PlaybackContext
@@ -23,7 +22,7 @@ class PrefetchExecutorTest {
     private fun track(index: Int, durationMs: Long = 80, bitrateKbps: Int = 1) = Track(
         id = "track-$index", title = "Track $index", artist = "Artist", albumId = "album-1",
         albumTitle = "Album", durationMs = durationMs, bitrateKbps = bitrateKbps,
-        artwork = Artwork.Local(0), mode = CatalogMode.LIVE, revision = "rev-$index",
+        artwork = Artwork.Local(0), revision = "rev-$index",
     )
 
     @Test fun `album prefetch runs in playback order and stops at byte budget`() = runTest {

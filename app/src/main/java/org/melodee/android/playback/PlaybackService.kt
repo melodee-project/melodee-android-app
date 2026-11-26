@@ -144,7 +144,7 @@ class PlaybackService : MediaLibraryService() {
                     container.prefetchExecutor.cancel()
                     cachedCatalog = null
                     accountScope = null
-                    // Do not let a demo fixture queue survive a transition into a live account.
+                    // Do not let a non-live queue survive a transition into a live account.
                     if (current != null && player.mediaItemCount > 0 &&
                         (0 until player.mediaItemCount).any {
                             !player.getMediaItemAt(it).mediaId.startsWith("live:")

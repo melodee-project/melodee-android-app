@@ -1,8 +1,5 @@
 package org.melodee.android.model
 
-/** Whether data comes from original bundled fixtures or an authenticated Melodee server. */
-enum class CatalogMode { DEMO, LIVE }
-
 sealed interface Artwork {
     data class Local(val drawableRes: Int) : Artwork
     data class Remote(val url: String) : Artwork
@@ -19,7 +16,6 @@ data class Track(
     val discNumber: Int = 0,
     val bitrateKbps: Int = 0,
     val artwork: Artwork,
-    val mode: CatalogMode,
     /** Immutable server revision when available; used for cache identity/revalidation. */
     val revision: String = "",
     val updatedAt: String = "",
@@ -42,7 +38,6 @@ data class Album(
     val artwork: Artwork,
     val songCount: Int,
     val trackIds: List<String>,
-    val mode: CatalogMode,
     val updatedAt: String = "",
     val isStarred: Boolean = false,
     val rating: Int = 0,
@@ -55,7 +50,6 @@ data class Artist(
     val albumCount: Int,
     val songCount: Int,
     val biography: String?,
-    val mode: CatalogMode,
     val isStarred: Boolean = false,
     val rating: Int = 0,
 )
@@ -69,7 +63,6 @@ data class Playlist(
     val trackIds: List<String>,
     val isPublic: Boolean,
     val ownerName: String,
-    val mode: CatalogMode,
 )
 
 data class SearchResults(
