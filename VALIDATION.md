@@ -95,12 +95,14 @@ The supplied production origin was probed without credentials:
 | `GET /api/v1/albums` | **401** — native API route exists and requires authentication |
 | `GET /openapi/v1.json` | **404** — the Rust server does not publish this legacy document; the local clone is the route reference |
 | `POST /api/v1/auth/google` with a fake token | **400** — `Google authentication is not enabled` |
+| Python production smoke | **PASS** — readiness, password login, `/user/me`, 5 albums, 12 album songs, stream HEAD/range `206 audio/mpeg` with 1 KiB payload |
+| Android production auth smoke | **PASS** — the app's `LiveSessionManager` logged in with the authorised test account, listed live albums and album tracks, resolved a same-origin `/song/stream/...` URL and completed a HEAD request |
 
-The username/password production login/catalog/stream flow has **not been executed** because no
-authorised test account was supplied. `scripts/melodee_prod_smoke.py` performs that read-only
-flow when credentials are available through environment variables and prints no tokens or signed
-URLs. The Android connection screen shows a truthful “Continue with Google” placeholder; Google
-remains untested and disabled on the server.
+The Python check is `scripts/melodee_prod_smoke.py`, using credentials from environment variables;
+it prints no tokens or signed URLs. The Android check was a temporary instrumentation test using
+the same production account and was removed after execution; no credentials were committed. The
+Android connection screen shows a truthful “Continue with Google” placeholder; Google remains
+untested and disabled on the server.
 
 ## Build environment at original starter validation (historical)
 
