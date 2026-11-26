@@ -22,6 +22,8 @@ Android app validation with the authorised temporary test account:
 - Queue rendered all 15 production tracks with reorder/remove actions.
 - Search for "Billie" returned production song results and artwork.
 - Settings showed the signed-in production account and Sign out action.
+- After clearing app data, the physical app showed only the sign-in gate (no bottom navigation,
+  no demo catalog). Successful login replaced the gate with live production Home data.
 - Physical device: installed over USB, logged in with the temporary test account, rendered the
   live Home, Library (Albums/Artists), Artist, Album, Search, Settings, Now Playing and Queue
   screens with production data. The test account had no playlists, so the Playlists tab showed
