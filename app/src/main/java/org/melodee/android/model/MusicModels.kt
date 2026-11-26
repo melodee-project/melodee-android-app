@@ -42,6 +42,7 @@ data class Album(
     val trackIds: List<String>,
     val mode: CatalogMode,
     val updatedAt: String = "",
+    val isStarred: Boolean = false,
 )
 
 data class Artist(
@@ -52,6 +53,7 @@ data class Artist(
     val songCount: Int,
     val biography: String?,
     val mode: CatalogMode,
+    val isStarred: Boolean = false,
 )
 
 data class Playlist(

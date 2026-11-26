@@ -346,6 +346,16 @@ class LiveMusicCatalog(
         session.authorized { origin, token -> api.setSongStarred(origin, token, trackId, favorite) }
     }
 
+    override suspend fun setAlbumFavorite(albumId: String, favorite: Boolean) {
+        session.authorized { origin, token -> api.setAlbumStarred(origin, token, albumId, favorite) }
+        albumsById[albumId]?.let { albumsById[albumId] = it.copy(isStarred = favorite) }
+    }
+
+    override suspend fun setArtistFavorite(artistId: String, favorite: Boolean) {
+        session.authorized { origin, token -> api.setArtistStarred(origin, token, artistId, favorite) }
+        artistsById[artistId]?.let { artistsById[artistId] = it.copy(isStarred = favorite) }
+    }
+
     override suspend fun searchDomain(query: String, page: Int, pageSize: Int): SearchResults {
         val context = context()
         val response = session.authorized { origin, token -> api.search(origin, token, query, pageSize, page) }

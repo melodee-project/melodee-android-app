@@ -411,6 +411,44 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun toggleAlbumFavorite(id: String) {
+        val current = mutableLibrary.value.selectedAlbum?.takeIf { it.id == id }
+            ?: mutableLibrary.value.albums.firstOrNull { it.id == id }
+            ?: return
+        val target = !current.isStarred
+        viewModelScope.launch {
+            runCatching { activeCatalog.setAlbumFavorite(id, target) }
+                .onSuccess {
+                    val update: (Album) -> Album = { if (it.id == id) it.copy(isStarred = target) else it }
+                    mutableLibrary.value = mutableLibrary.value.copy(
+                        selectedAlbum = mutableLibrary.value.selectedAlbum?.let(update),
+                        albums = mutableLibrary.value.albums.map(update),
+                        artistAlbums = mutableLibrary.value.artistAlbums.map(update),
+                        home = mutableLibrary.value.home.copy(recentAlbums = mutableLibrary.value.home.recentAlbums.map(update)),
+                    )
+                }
+                .onFailure { mutableState.value = mutableState.value.copy(error = libraryError(it)) }
+        }
+    }
+
+    fun toggleArtistFavorite(id: String) {
+        val current = mutableLibrary.value.selectedArtist?.takeIf { it.id == id }
+            ?: mutableLibrary.value.artists.firstOrNull { it.id == id }
+            ?: return
+        val target = !current.isStarred
+        viewModelScope.launch {
+            runCatching { activeCatalog.setArtistFavorite(id, target) }
+                .onSuccess {
+                    val update: (Artist) -> Artist = { if (it.id == id) it.copy(isStarred = target) else it }
+                    mutableLibrary.value = mutableLibrary.value.copy(
+                        selectedArtist = mutableLibrary.value.selectedArtist?.let(update),
+                        artists = mutableLibrary.value.artists.map(update),
+                    )
+                }
+                .onFailure { mutableState.value = mutableState.value.copy(error = libraryError(it)) }
+        }
+    }
+
     fun openArtist(id: String) {
         selectionJob?.cancel()
         selectionJob = viewModelScope.launch {

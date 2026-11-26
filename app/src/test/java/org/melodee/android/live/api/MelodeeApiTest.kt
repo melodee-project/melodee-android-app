@@ -109,6 +109,16 @@ class MelodeeApiTest {
         assertTrue(permission)
     }
 
+    @Test fun `artist and album like mutations use their native routes`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200))
+        api.setAlbumStarred(origin, "token", "album-1", true)
+        assertEquals("/api/v1/albums/starred/album-1/true", server.takeRequest().path)
+
+        server.enqueue(MockResponse().setResponseCode(200))
+        api.setArtistStarred(origin, "token", "artist-1", false)
+        assertEquals("/api/v1/artists/starred/artist-1/false", server.takeRequest().path)
+    }
+
     @Test fun `stream URL must stay on the configured origin`() = runTest {
         server.enqueue(json("""{"id":"track-1","streamUrl":"/song/stream/track-1/user-1/token"}"""))
         val url = api.streamUrl(origin, "token", "track-1")

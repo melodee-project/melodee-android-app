@@ -46,7 +46,9 @@ interface MusicCatalog {
     suspend fun tracks(page: Int = 1, pageSize: Int = 50): List<Track>
     suspend fun favorites(page: Int = 1, pageSize: Int = 50): List<Track>
 
-    /** Idempotent favorite mutation; demo mode updates local preferences instead. */
+    /** Idempotent favorite mutations for the authenticated account. */
     suspend fun setFavorite(trackId: String, favorite: Boolean)
+    suspend fun setAlbumFavorite(albumId: String, favorite: Boolean)
+    suspend fun setArtistFavorite(artistId: String, favorite: Boolean)
     suspend fun searchDomain(query: String, page: Int = 1, pageSize: Int = 50): SearchResults
 }

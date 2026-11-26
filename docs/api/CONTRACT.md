@@ -54,6 +54,8 @@ settings and signed stream URLs. It does **not** depend on the missing server qu
 | Playlist songs | `GET /api/v1/playlists/{uuid}/songs?page&pageSize` | bearer | `Paged<Song>`; duplicate occurrences preserved in order |
 | Liked songs | `GET /api/v1/user/songs/liked?page&pageSize` | bearer | `Paged<Song>` |
 | Star song | `POST /api/v1/songs/starred/{uuid}/{true|false}` | bearer | 200; idempotent set |
+| Star album | `POST /api/v1/albums/starred/{uuid}/{true|false}` | bearer | 200; idempotent set |
+| Star artist | `POST /api/v1/artists/starred/{uuid}/{true|false}` | bearer | 200; idempotent set |
 | Recently played | `GET /api/v1/user/last-played?page&pageSize` | bearer | `Paged<Song>` |
 | Stream bytes | `GET/HEAD /song/stream/{trackUuid}/{userUuid}/{hmac}` | signed URL | 200/206/416; no bearer header |
 

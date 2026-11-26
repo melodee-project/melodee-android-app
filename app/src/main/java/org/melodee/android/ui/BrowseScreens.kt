@@ -359,7 +359,18 @@ fun CollectionScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Li
             }
         }
         item {
-            Text(title, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(top = 10.dp))
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
+                if (!playlist && album != null) {
+                    IconButton(onClick = { vm.toggleAlbumFavorite(album.id) }) {
+                        Icon(
+                            if (album.isStarred) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                            if (album.isStarred) "Unlike album" else "Like album",
+                            tint = if (album.isStarred) Accent else SoftWhite,
+                        )
+                    }
+                }
+            }
             Text(if (playlist) mix?.ownerName?.ifBlank { "Curated playlist" } ?: "Curated playlist"
             else album?.artist ?: "", color = Muted, modifier = Modifier.padding(top = 6.dp))
             val description = if (playlist) mix?.description else album?.description
@@ -412,7 +423,17 @@ fun ArtistScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Librar
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Cover(artist.artwork, Modifier.size(112.dp), "${artist.name} artwork")
                     Column(Modifier.weight(1f).padding(start = 18.dp)) {
-                        Text(artist.name, style = MaterialTheme.typography.headlineMedium)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(artist.name, style = MaterialTheme.typography.headlineMedium,
+                                modifier = Modifier.weight(1f))
+                            IconButton(onClick = { vm.toggleArtistFavorite(artist.id) }) {
+                                Icon(
+                                    if (artist.isStarred) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                    if (artist.isStarred) "Unlike artist" else "Like artist",
+                                    tint = if (artist.isStarred) Accent else SoftWhite,
+                                )
+                            }
+                        }
                         Text("${artist.albumCount} albums · ${artist.songCount} songs",
                             color = Muted, modifier = Modifier.padding(top = 6.dp))
                         if (tracks.isNotEmpty()) {

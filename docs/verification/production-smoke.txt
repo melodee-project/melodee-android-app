@@ -30,6 +30,10 @@ Android app validation with the authorised temporary test account:
   the truthful live empty state.
 - Physical playback: "Therefore Can I" from "FSOLdigital Presents 2025 Calendar" played through
   the service and stayed PLAYING with the foreground media notification after Home/background.
+- Album/artist like routes: authenticated star/unstar returned 200 for the first album and
+  artist; both were returned to the unliked state.
+- Album like UI: on the live album detail, the heart changed to the filled “Unlike album” state
+  through the production API, then was toggled back to unliked.
 - Google: server returned "Google authentication is not enabled"; the app shows only the
   explicit placeholder action and does not fake Google sign-in.
 

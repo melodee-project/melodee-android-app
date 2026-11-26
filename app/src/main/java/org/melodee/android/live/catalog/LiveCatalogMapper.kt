@@ -37,6 +37,7 @@ internal fun ArtistDto.toDomain(origin: ServerOrigin): Artist = Artist(
     songCount = songCount,
     biography = biography,
     mode = CatalogMode.LIVE,
+    isStarred = userStarred,
 )
 
 internal fun AlbumDto.toDomain(origin: ServerOrigin, trackIds: List<String> = emptyList()): Album = Album(
@@ -51,6 +52,7 @@ internal fun AlbumDto.toDomain(origin: ServerOrigin, trackIds: List<String> = em
     trackIds = trackIds,
     mode = CatalogMode.LIVE,
     updatedAt = revisionOf(updatedAt, createdAt, 0),
+    isStarred = userStarred,
 )
 
 internal fun SongDto.toDomain(origin: ServerOrigin): Track = Track(
