@@ -38,6 +38,10 @@ Android app validation with the authorised temporary test account:
   through the production API, then was toggled back to unliked.
 - Ratings: production setrating returned 200 for album, artist and song at 5 and at clear 0.
   Album detail five-star UI set and cleared the rating on the physical device.
+- Android Auto: DHU 2.0 over ADB rendered live production Home, Library
+  (Albums/Artists/Songs/Favorites), album detail, Now Playing and Queue. A production
+  album track played through the shared service and the position advanced. Category tiles
+  use bundled UI icons; library data and artwork came from the server.
 - Google: server returned "Google authentication is not enabled"; the app shows only the
   explicit placeholder action and does not fake Google sign-in.
 
@@ -47,6 +51,6 @@ credentials file was removed from the device and app data was cleared after vali
 Not covered by this run:
 - refresh-token rotation/ambiguity over the network
 - token expiry mid-song, network transitions, dead zones or endurance
-- DHU/physical vehicle, focus/call handling
+- physical vehicle, wireless projection and focus/call/voice handling (DHU browse/playback did pass)
 - full playlist flow against production
 - release-signed artifact

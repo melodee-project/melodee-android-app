@@ -35,7 +35,6 @@ import org.melodee.android.live.auth.LiveSessionManager
 import org.melodee.android.live.data.LiveCatalogCache
 import org.melodee.android.live.data.LiveQueueStore
 import org.melodee.android.model.Artwork
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.PlaybackSnapshot
 import org.melodee.android.model.QueueContext
 import org.melodee.android.model.QueueEntry
@@ -89,7 +88,6 @@ class LiveMusicCatalogTest {
         val albums = catalog.albums()
         assertEquals(1, albums.size)
         assertEquals("Northern Lights", albums.first().title)
-        assertEquals(CatalogMode.LIVE, albums.first().mode)
 
         server.enqueue(json(albumSongsJson()))
         val tracks = catalog.albumTracks("album-1")
@@ -125,7 +123,7 @@ class LiveMusicCatalogTest {
             id = "track-1", title = "Solar Wind", artist = "Aurora", albumId = "album-1",
             albumTitle = "Northern Lights", durationMs = 2500, bitrateKbps = 320,
             artwork = Artwork.Remote("https://music.example/images/song_1/640"),
-            mode = CatalogMode.LIVE, revision = "rev-1",
+            revision = "rev-1",
         )
         val snapshot = PlaybackSnapshot(
             entries = listOf(QueueEntry("entry-1", track), QueueEntry("entry-2", track)),

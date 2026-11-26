@@ -8,7 +8,7 @@ The installed app is named **Melodee** and uses the supplied Melodee logo. It im
 
 > **Authentication is mandatory.** The app has no offline catalog or in-app demo library. On launch it checks for a saved session and otherwise presents the Melodee sign-in screen. Once authenticated, every browsing screen uses the connected server's catalog; if the server has no content, the app shows an empty state rather than mock data.
 >
-> **Status:** Username/password authentication, live catalog/search/playlists, signed streaming, account-scoped queue persistence, bounded prefetch and physical-device playback are implemented and verified against the supplied production instance. Android Auto DHU/vehicle testing, refresh-rotation fault injection, dead-zone endurance and release signing remain outstanding. See [VALIDATION.md](VALIDATION.md).
+> **Status:** Username/password authentication, live catalog/search/playlists, signed streaming, account-scoped queue persistence, bounded prefetch and physical-device playback are implemented and verified against the supplied production instance. Android Auto is DHU-verified; physical-vehicle testing, refresh-rotation fault injection, dead-zone endurance and release signing remain outstanding. See [VALIDATION.md](VALIDATION.md).
 
 ## Open and run in Android Studio
 
@@ -40,7 +40,7 @@ On Windows, use `gradlew.bat` in place of `./gradlew`. The debug APK is generate
 | Phone experience | Home, Search, Library, Settings, artist/album/playlist details, Now Playing, queue, live sign-in with the last successful server remembered, like/unlike hearts and 1–5 star ratings for tracks, albums and artists |
 | Audio | One service-owned ExoPlayer, shared MediaLibrarySession, live signed streaming, bounded temporary playback buffer and queue/position/shuffle restoration |
 | Authentication | Keystore-backed AES-GCM session record, proactive/single-flight renewal, rotation-ambiguity handling and account cleanup |
-| Android Auto | Live MediaLibraryService hierarchy (`Home`, `Library`, `Playlists`, `Favorites`), search, album expansion and one shared queue; DHU/vehicle qualification pending |
+| Android Auto | Live MediaLibraryService hierarchy (`Home`, `Library`, `Playlists`, `Favorites`), search, album expansion and one shared queue; DHU live browse/playback verified, physical-vehicle qualification pending |
 | Core logic | Context-aware prefetch planner/executor, stable cache identity and coordinated token renewal with tests |
 | Preferences | DataStore-backed playback preferences, account metadata, last successful server origin and live favorites |
 | Product documentation | PRD, SPEC, phased IMPLEMENTATION plan, thirteen ADRs, UX/design rules, captured API contract/fixtures and coding-agent instructions |

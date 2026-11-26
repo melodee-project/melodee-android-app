@@ -101,7 +101,7 @@ class AudioCache(
 
     fun cachedSpace(): Long = cache.getCacheSpace()
 
-    /** Logout/account switch removes only live audio; demo fixtures are not user account data. */
+    /** Logout/account switch removes account audio; untracked URIs are not account data. */
     fun clearAccountAudio() {
         cache.keys.filter { it.startsWith("audio-v1-") }.forEach(cache::removeResource)
     }
@@ -111,7 +111,7 @@ class AudioCache(
 
     private fun keyFor(dataSpec: DataSpec): String {
         val uri = dataSpec.uri
-        if (uri.scheme != MELODEE_SCHEME) return "demo-" + uri.toString()
+        if (uri.scheme != MELODEE_SCHEME) return "untracked-" + uri.toString()
         val trackId = uri.pathSegments.lastOrNull() ?: return "invalid-" + uri.toString()
         val account = runBlocking { session.currentAccount() } ?: return "unscoped-" + uri.toString()
         val revision = uri.getQueryParameter("rev") ?: "unknown"

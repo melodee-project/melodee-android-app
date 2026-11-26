@@ -60,13 +60,13 @@ kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
 | Check | Result | Evidence / meaning |
 |---|---|---|
 | `./gradlew test --warning-mode=all` | **PASS — 59/59 unit tests** | 31 existing core tests + 28 app tests: 12 API/origin/paging/like/rating contract, 5 refresh classification, 6 session manager, 5 prefetch executor; 0 failures/errors/skips. |
-| `./gradlew :app:lintDebug` | **PASS — 0 errors, 30 warnings** | Warnings are dependency/toolchain advisories, intentional exported media components, target API 37 advisory, KTX suggestions and the unchanged release shrink policy. No suppression or baseline was added. |
+| `./gradlew :app:lintDebug` | **PASS — 0 errors, 41 warnings** | Warnings are dependency/toolchain advisories, intentional exported media components, target API 37 advisory, KTX suggestions, the adaptive-icon monochrome hint and the unchanged release shrink policy. No suppression or baseline was added. |
 | `./gradlew :app:assembleRelease` | **PASS** | R8 release packaging succeeds with the new network/cache dependencies; artifact remains unsigned by policy. |
-| `./gradlew :app:connectedDebugAndroidTest` | **PASS — 11/11 tests** | 1 original demo service/controller smoke test, 4 Keystore store tests, 1 Room v1→v2 migration test, 3 live catalog/cache/queue tests, 1 live signed-audio service test, 1 live phone UI test. |
+| `./gradlew :app:connectedDebugAndroidTest` | **PASS — 11/11 tests on both the API 37 emulator and physical Pixel 9 Pro XL** | 1 authenticated service/controller smoke test, 4 Keystore store tests, 1 Room v1→v2 migration test, 3 live catalog/cache/queue tests, 1 live signed-audio service test, 1 live phone UI test. |
 | Keystore round-trip | **PASS** | AES-GCM encrypted record, atomic replacement, pending-rotation marker, corrupt-ciphertext fail-closed and delete. Tokens were not present in the ciphertext file. |
-| Room migration | **PASS** | v1 demo bookmark survives; `cached_catalog` and `queue_snapshot` tables are created and usable. |
+| Room migration | **PASS** | The legacy v1 bookmark row survives; `cached_catalog` and `queue_snapshot` tables are created and usable. |
 | Live catalog fixture test | **PASS** | Login, album list/detail/songs, media-item metadata, album expansion, cached album fallback when the fixture server is gone, account-scoped queue snapshot with duplicate entries and no signed URL. |
-| Live playback fixture test | **PASS** | Real MediaLibraryService/MediaBrowser, live album browse, signed `melodee://` resolution through `AudioCache`, actual bundled OGG bytes served by MockWebServer, playback reached READY and advanced. |
+| Live playback fixture test | **PASS** | Real MediaLibraryService/MediaBrowser, live album browse, signed `melodee://` resolution through `AudioCache`, test-only OGG bytes served by MockWebServer, playback reached READY and advanced. |
 | Live phone UI test | **PASS** | After fixture login, the phone Home surface rendered “Northern Lights” from the live catalog. Logout returned to the sign-in gate with the last successful server origin prefilled. |
 | Last server prefill | **PASS** | Unit test confirms the last successful server survives logout; instrumentation logs out through the live session manager and asserts the sign-in field contains the saved fixture origin. On the physical device against production, signing out and then force-stopping/relaunching showed `https://music.shildreth.com` prefilled in the server field. |
 | Authenticated service smoke | **PASS** | `MediaLibrarySmokeTest` now authenticates against the deterministic fixture server and verifies live roots/album, real audio, a two-track queue and next track. |
@@ -75,6 +75,9 @@ kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
 | Album like UI | **PASS** | On the physical device’s live album detail, tapping the outline heart changed it to the filled “Unlike album” state through the production endpoint; tapping again restored the unliked state. |
 | Album/artist/song rating routes | **PASS** | Production-authenticated setrating calls returned 200 for album, artist and song with rating 5 and then clear 0. Android API tests assert `/albums/setrating`, `/artists/setrating` and `/songs/setrating` routes. |
 | Album rating UI | **PASS** | On the physical device’s live album detail, the five-star row set a 5-star rating through the production API and showed the “Clear 5-star rating” state; tapping the selected star returned it to unset. |
+| No bundled catalog content | **PASS** | The production source has no demo catalog or demo artwork; the release and debug APKs contain no `assets/audio` files. The single OGG fixture is packaged only in the instrumentation test APK. |
+| Android Auto live browse | **PASS — DHU 2.0** | Desktop Head Unit connected over ADB to the physical Pixel 9 Pro XL and rendered live production `Home`, `Library` (Albums/Artists/Songs/Favorites), album detail with ordered tracks, Now Playing and queue. Category tiles use bundled UI icons; all library titles, artwork, IDs and stream data came from the authenticated server. |
+| Android Auto live playback | **PASS — DHU 2.0** | Selecting a production album track in the DHU started real audio through the same `PlaybackService`; Now Playing showed the server title/artist/album art and the elapsed time advanced. Queue listed the real production track order. |
 
 ### Not executed or not qualified
 
@@ -82,8 +85,9 @@ kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
   over the network, ambiguous lost refresh responses and IP-bound signed URL invalidation.
 - Real byte-range/HEAD behavior, Wi-Fi↔cellular transition, dead-zone endurance, four-hour
   playback, large FLAC/gapless matrix, low storage/disk-full, cache eviction under real load.
-- Android Auto DHU and physical vehicle; live browse/search were exercised through the real
-  MediaLibraryService/MediaBrowser fixture path only.
+- Android Auto physical vehicle, wireless projection, focus/call/voice behavior and
+  long-duration drive testing. DHU over ADB is verified; a simulated head unit is not a
+  real-vehicle qualification.
 - Instrumented release artifact (unsigned) and release signing.
 - Diagnostics export, TalkBack audit, large-font/landscape matrix and measured performance budgets.
 - Structured diagnostic export and user-triggered sanitized bundle.

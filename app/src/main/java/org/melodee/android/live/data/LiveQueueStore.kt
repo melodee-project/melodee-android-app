@@ -7,7 +7,6 @@ import org.melodee.android.data.QueueSnapshotDao
 import org.melodee.android.data.QueueSnapshotEntity
 import org.melodee.android.live.api.MelodeeJson
 import org.melodee.android.model.Artwork
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.PlaybackSnapshot
 import org.melodee.android.model.QueueContext
 import org.melodee.android.model.QueueEntry
@@ -102,7 +101,6 @@ private data class SnapshotTrackDto(
         trackNumber = trackNumber,
         bitrateKbps = bitrateKbps,
         artwork = artworkUrl?.let(Artwork::Remote) ?: Artwork.Local(R.drawable.art_placeholder),
-        mode = CatalogMode.LIVE,
         revision = revision,
         updatedAt = updatedAt,
         rating = rating.coerceIn(0, 5),

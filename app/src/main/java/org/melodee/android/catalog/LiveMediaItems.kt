@@ -6,7 +6,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import org.melodee.android.R
 import org.melodee.android.model.Artwork
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.Track
 
 /** Stable media/queue metadata for live tracks. Transport URLs are resolved at read time. */
@@ -58,7 +57,6 @@ object LiveMediaItems {
             bitrateKbps = extras?.getInt(KEY_BITRATE, 0) ?: 0,
             artwork = metadata.artworkUri?.let { Artwork.Remote(it.toString()) }
                 ?: Artwork.Local(R.drawable.art_placeholder),
-            mode = CatalogMode.LIVE,
             revision = extras?.getString(KEY_REVISION).orEmpty().ifBlank { "unknown" },
             updatedAt = extras?.getString(KEY_UPDATED).orEmpty(),
             rating = extras?.getInt(KEY_RATING, 0) ?: 0,

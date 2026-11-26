@@ -24,7 +24,7 @@ This is the current authenticated boundary; [VALIDATION.md](VALIDATION.md) is au
 
 ### Current build baseline
 
-Gradle 9.6.1 (official wrapper and checksum), Android Gradle Plugin 9.5.3 with built-in Kotlin, Kotlin 2.4.21, KSP 2.3.14, JDK 21, compile/target SDK 36 and minimum SDK 29. The 2026-11-26 toolchain modernization is recorded in [ADR-0010](docs/adr/0010-modern-build-toolchain.md) and [TOOLCHAIN-UPGRADE-RESULTS.md](TOOLCHAIN-UPGRADE-RESULTS.md); [VALIDATION.md](VALIDATION.md) records the re-run evidence. Release signing/publication, Android Auto DHU and physical-vehicle qualification, and live-server integration remain separate outstanding work.
+Gradle 9.6.1 (official wrapper and checksum), Android Gradle Plugin 9.5.3 with built-in Kotlin, Kotlin 2.4.21, KSP 2.3.14, JDK 21, compile/target SDK 36 and minimum SDK 29. The 2026-11-26 toolchain modernization is recorded in [ADR-0010](docs/adr/0010-modern-build-toolchain.md) and [TOOLCHAIN-UPGRADE-RESULTS.md](TOOLCHAIN-UPGRADE-RESULTS.md); [VALIDATION.md](VALIDATION.md) records the re-run evidence. Release signing/publication, physical-vehicle qualification and remaining live-server fault qualification remain separate outstanding work.
 
 ### Live integration status (2026-11-26)
 
@@ -39,7 +39,7 @@ sanitised fixtures. It is **not** a live-server or vehicle qualification.
 | 3 Catalog/queue | Implemented for the core phone scope with incremental paging | Live albums/artists/songs/search/playlists/liked songs use bounded server pages (50/100) with explicit “Show more” controls; artist/playlist detail pages incrementally; search is paged per type; account-scoped Room metadata and queue snapshots; like/unlike and 1–5 star rating mutations for tracks, albums and artists. The last successful server origin is retained outside the active account metadata so the signed-out gate can prefill it. Production verification covered Home, Library albums/artists, Artist detail, Album detail, Search, Settings, Now Playing and Queue. Advanced discovery/lyrics remain deferred. |
 | 4 Playback/streams | Implemented; production single-album playback verified | `AudioCache` with `SimpleCache`/`CacheDataSource`/`ResolvingDataSource`, stable track identity, signed URL re-resolution on cache miss, one service-owned ExoPlayer/session. Production audio decoded and progressed in the app and the live queue rendered. Expiry/IP/range/endurance and full codec matrix remain unqualified. |
 | 5 Prefetch | Planner + executor implemented | `PrefetchExecutor` uses `CacheWriter`, hard byte ceiling, queue/account cancellation, current-first and bounded forward planning; unit-tested. Real disk-full/large-FLAC/dead-zone measurements remain. |
-| 6 Android Auto | Live hierarchy/search implemented | Same service/session, live roots, album expansion, search and deterministic rejection of unknown IDs. DHU and physical vehicle not run. |
+| 6 Android Auto | Live hierarchy/search implemented and DHU-verified | Same service/session, live roots, album expansion, search and deterministic rejection of unknown IDs. DHU 2.0 browse/playback verified against production; physical vehicle not run. |
 | 7 Polish/diagnostics | Partial | Connection/loading/empty/error/sign-out states and accessible labels added. Structured diagnostic export and measured accessibility/performance passes remain. |
 | 8 Qualification/release | Not complete | Independent live/DHU/vehicle/endurance review, signing and publication remain outstanding. |
 
