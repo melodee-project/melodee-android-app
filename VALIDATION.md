@@ -53,8 +53,9 @@ The live client was implemented against the captured native-v1 contract and dete
 MockWebServer fixtures. **No authorised live Melodee deployment or account was supplied**, so
 this section records local transport/service behavior, not live-server or vehicle qualification.
 
-Environment: same Linux/JDK 21/SDK 36 environment; Pixel 9 Pro XL API 37 emulator. Added runtime
-libraries: OkHttp 5.4.0, kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
+Environment: same Linux/JDK 21/SDK 36 environment; Pixel 9 Pro XL API 37 emulator and a USB-connected
+Pixel 9 Pro XL physical device (Android 17 / API 37, arm64). Added runtime libraries: OkHttp 5.4.0,
+kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
 
 | Check | Result | Evidence / meaning |
 |---|---|---|
@@ -97,13 +98,15 @@ The supplied production origin was probed without credentials:
 | `POST /api/v1/auth/google` with a fake token | **400** — `Google authentication is not enabled` |
 | Python production smoke | **PASS** — readiness, password login, `/user/me`, 5 albums, 12 album songs, stream HEAD/range `206 audio/mpeg` with 1 KiB payload |
 | Android production auth smoke | **PASS** — the app's `LiveSessionManager` logged in with the authorised test account, listed live albums and album tracks, resolved a same-origin `/song/stream/...` URL and completed a HEAD request |
-| Android production screen smoke | **PASS** — signed in through the app, then visually verified live Home, Library (Albums/Artists), Artist detail, Album detail, Search results, Settings account state, Now Playing and Queue; actual production audio played (`LOCKED + IN`, position advanced to 0:54 of 2:18) and the 15-track queue rendered |
-| Production playback | **PASS (single album/run)** — ExoPlayer streamed the production signed `audio/mpeg` track through the shared service/session. Background/vehicle/endurance remain unqualified |
+| Android production screen smoke — emulator | **PASS** — signed in through the app, then visually verified live Home, Library (Albums/Artists), Artist detail, Album detail, Search results, Settings account state, Now Playing and Queue; actual production audio played (`LOCKED + IN`, position advanced to 0:54 of 2:18) and the 15-track queue rendered |
+| Android production screen smoke — physical Pixel 9 Pro XL | **PASS** — installed via USB, password login succeeded, live Home/Library/Artists/Artist/Album/Search/Settings/Now Playing/Queue rendered production data; the test account had no playlists, so Playlists correctly showed the live empty state |
+| Production playback — physical device | **PASS (single album/run)** — “Therefore Can I” played from the production `FSOLdigital Presents 2025 Calendar` album; the foreground media notification appeared and the session remained `PLAYING` (position advanced past 47 s) after the app was backgrounded. Expiry/IP/range/endurance and full codec matrix remain unqualified |
+| Physical background playback | **PASS** — Home press did not stop the foreground service; media notification and session remained playing |
 
 The Python check is `scripts/melodee_prod_smoke.py`, using credentials from environment variables;
 it prints no tokens or signed URLs. The temporary Android instrumentation checks used the same
-production account and were removed after execution; the emulator app data and credential file
-were cleared, and no credentials were committed. The Android connection screen shows a truthful
+production account and were removed after execution. The physical device app data was cleared
+after validation; the emulator credential file was removed; no credentials were committed. The Android connection screen shows a truthful
 “Continue with Google” placeholder; Google remains untested and disabled on the server.
 
 ## Build environment at original starter validation (historical)

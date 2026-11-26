@@ -1,7 +1,7 @@
 Production native-v1 validation
 Date: 2026-11-26
 Server: melodee-server 0.3.0 at the supplied production origin
-Device: Pixel 9 Pro XL API 37 emulator
+Devices: Pixel 9 Pro XL API 37 emulator and USB-connected Pixel 9 Pro XL physical device (Android 17 / API 37, arm64)
 
 Python read-only smoke (scripts/melodee_prod_smoke.py):
 - readiness 200
@@ -22,6 +22,12 @@ Android app validation with the authorised temporary test account:
 - Queue rendered all 15 production tracks with reorder/remove actions.
 - Search for "Billie" returned production song results and artwork.
 - Settings showed the signed-in production account and Sign out action.
+- Physical device: installed over USB, logged in with the temporary test account, rendered the
+  live Home, Library (Albums/Artists), Artist, Album, Search, Settings, Now Playing and Queue
+  screens with production data. The test account had no playlists, so the Playlists tab showed
+  the truthful live empty state.
+- Physical playback: "Therefore Can I" from "FSOLdigital Presents 2025 Calendar" played through
+  the service and stayed PLAYING with the foreground media notification after Home/background.
 - Google: server returned "Google authentication is not enabled"; the app shows only the
   explicit placeholder action and does not fake Google sign-in.
 
