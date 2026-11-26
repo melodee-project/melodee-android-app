@@ -15,6 +15,7 @@ ADRs record decisions, their rationale and consequences. **Accepted** records re
 | [0009](0009-rotation-ambiguity.md) | Treat uncertain refresh rotation explicitly | Accepted client behavior; server recovery decision open |
 | [0010](0010-modern-build-toolchain.md) | Modern AGP 9.5.3 / Gradle 9.6.1 toolchain and built-in Kotlin | Accepted — current build baseline |
 | [0011](0011-live-native-api-integration.md) | Live native API, secure sessions and bounded streaming cache | Accepted for local implementation; live/vehicle qualification pending |
+| [0012](0012-google-sign-in-plan.md) | Google sign-in plan and temporary placeholder | Proposed; server Google auth disabled |
 
 ## Template
 

@@ -31,6 +31,9 @@ object OriginPolicy {
         ) {
             return Result.failure(IllegalArgumentException("Enter only the server origin, without credentials, query or fragment"))
         }
+        if (url.encodedPath.isNotEmpty() && url.encodedPath != "/") {
+            return Result.failure(IllegalArgumentException("Enter only the server address; the app adds the Melodee API path"))
+        }
         val loopback = url.host == "127.0.0.1" || url.host == "localhost" || url.host == "::1"
         if (url.scheme != "https" && !(allowInsecureLoopback && loopback && url.scheme == "http")) {
             return Result.failure(IllegalArgumentException("Melodee requires an HTTPS server address"))

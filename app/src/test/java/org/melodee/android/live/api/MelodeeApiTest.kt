@@ -129,6 +129,17 @@ class MelodeeApiTest {
         assertNotNull(OriginPolicy.resolveSameOrigin(local, "/images/cover"))
     }
 
+    @Test fun `origin-only input drives the native api path`() {
+        val origin = OriginPolicy.normalize("https://music.example.test/", allowInsecureLoopback = false).getOrThrow()
+        assertEquals("https://music.example.test", origin.id)
+        assertEquals("https://music.example.test/", origin.baseUrl.toString())
+        assertEquals(
+            "https://music.example.test/api/v1/albums",
+            OriginPolicy.resolveSameOrigin(origin, "/api/v1/albums").toString(),
+        )
+        assertTrue(OriginPolicy.normalize("https://music.example.test/api/v1", allowInsecureLoopback = false).isFailure)
+    }
+
     private fun json(body: String, status: Int = 200): MockResponse = MockResponse()
         .setResponseCode(status)
         .addHeader("Content-Type", "application/json")

@@ -16,7 +16,7 @@ The installed app is named **Melodee** and uses the supplied Melodee logo. It im
 4. In Device Manager, create a phone emulator running **API 29 or newer**; API 36 is the recommended first test.
 5. Select the **app** run configuration/module and press **Run**.
 6. In **Melodee**, choose a demo album or track and press Play. Test the mini-player, Now Playing, queue, Search and Library. Playback uses real Media3 audio, not an animated mock player.
-7. To use your own server, open **Settings → Connect to Melodee**, enter its HTTPS origin and sign in. The app then renders live albums, artists, songs, playlists and favorites; the demo remains available after sign-out. Never commit real server credentials.
+7. To use your own server, open **Settings → Connect to Melodee**, enter its HTTPS origin and sign in with your Melodee username and password. The app then renders live albums, artists, songs, playlists and favorites; the demo remains available after sign-out. Never commit real server credentials. A **Continue with Google** placeholder is visible while Google OAuth/server setup is pending; it explains the status and does not fake a sign-in.
 
 Android Studio normally creates the machine-specific `local.properties` SDK path. That file must remain untracked. No Firebase project, signing key, private server or password is needed for the demo.
 
@@ -41,7 +41,7 @@ On Windows, use `gradlew.bat` in place of `./gradlew`. The debug APK is generate
 | Android Auto | Live MediaLibraryService hierarchy (`Home`, `Library`, `Playlists`, `Favorites`), search, album expansion and one shared queue; DHU/vehicle qualification pending |
 | Core logic | Context-aware prefetch planner/executor, stable cache identity and coordinated token renewal with tests |
 | Preferences | DataStore-backed playback preferences, account metadata and demo favorites |
-| Product documentation | PRD, SPEC, phased IMPLEMENTATION plan, eleven ADRs, UX/design rules, captured API contract/fixtures and coding-agent instructions |
+| Product documentation | PRD, SPEC, phased IMPLEMENTATION plan, twelve ADRs, UX/design rules, captured API contract/fixtures and coding-agent instructions |
 | Design references | Exact supplied logo and selected concept image, with superseded mockup text documented |
 | Build | Gradle wrapper, version catalog and reproducible native project structure |
 
@@ -108,6 +108,17 @@ After phone playback is verified, follow Google's [Desktop Head Unit setup](http
 The local client and credential store are implemented. Before using a real deployment, follow Phase 1 in [IMPLEMENTATION.md](IMPLEMENTATION.md): pin the exact native Melodee API revision and audit auth rotation, catalog schemas, signed stream URLs and range responses. Do not paste production credentials into source, Gradle properties or issue reports.
 
 The captured reference is [docs/api/openapi-v1.json](docs/api/openapi-v1.json), the implementation contract is [docs/api/CONTRACT.md](docs/api/CONTRACT.md), and provenance/known gaps are in [docs/api/README.md](docs/api/README.md). The upstream OpenAPI is known-incomplete and is not an approved live contract. Live refresh-rotation recovery, IP-bound URL expiry and range behaviour remain open server-audit items.
+
+For a controlled production username/password check, put credentials only in local environment variables and run:
+
+```bash
+MELODEE_BASE_URL=https://music.example.com \
+MELODEE_USERNAME=test-user \
+MELODEE_PASSWORD='...' \
+python3 scripts/melodee_prod_smoke.py
+```
+
+The script tests readiness, login, `/user/me`, albums, album songs and a stream HEAD/range read. It prints no tokens or signed URLs.
 
 ## Stack and compatibility
 

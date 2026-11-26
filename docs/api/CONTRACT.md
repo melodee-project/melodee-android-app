@@ -35,6 +35,10 @@ settings and signed stream URLs. It does **not** depend on the missing server qu
 | Refresh | `POST /api/v1/auth/refresh-token` | none | `{refreshToken, deviceId?}` → `AuthenticationResponse`; 401 `ApiError` |
 | Revoke | `POST /api/v1/auth/revoke` | none | `{refreshToken, deviceId?}` → 200 |
 | Logout | `POST /api/v1/auth/logout` | bearer | 200; revokes refresh family |
+| Google login | `POST /api/v1/auth/google` | none | `{idToken, deviceId?}` → `AuthenticationResponse`; server must have Google enabled. Currently a placeholder in the Android UI. |
+| Link Google | `POST /api/v1/user/me/link/google` | bearer | `{idToken}` → 200; 409 if already linked |
+| Unlink Google | `DELETE /api/v1/user/me/link/google` | bearer | 200/404 |
+| Linked providers | `GET /api/v1/user/me/linked-providers` | bearer | provider list |
 | Current user | `GET /api/v1/user/me` | bearer | `User` |
 | Albums | `GET /api/v1/albums?page&pageSize&orderBy&orderDirection&q` | bearer | `Paged<Album>` |
 | Album | `GET /api/v1/albums/{uuid}` | bearer | `Album`; 404 `ApiError` |
@@ -137,7 +141,37 @@ fixture identities. They contain no real credentials or private hosts. See
 | Prefetch | `PrefetchPlanner` + `PrefetchExecutor` + `Media3TrackDownloader` |
 | Android Auto | `PlaybackService` live browse/search/resumption paths |
 
-## 9. Not yet qualified
+## 9. Production auth smoke test
+
+`scripts/melodee_prod_smoke.py` performs an authorised, read-only username/password smoke test
+against a deployment. It prints no credentials, access tokens, refresh tokens or signed URLs.
+
+```bash
+MELODEE_BASE_URL=https://music.example.com \
+MELODEE_USERNAME=test-user \
+MELODEE_PASSWORD='...' \
+python3 scripts/melodee_prod_smoke.py
+```
+
+It checks `/readyz`, password login, `/user/me`, album listing, album songs, and a stream HEAD
+plus a 1 KiB range GET. It does not rotate refresh tokens or mutate server state.
+
+## 10. Google authentication status
+
+The native route and request/response shape are confirmed from the local `melodee-rs` v0.3.0
+source. Production currently returns:
+
+```json
+{"code":"BAD_REQUEST","message":"Google authentication is not enabled"}
+```
+
+for `/api/v1/auth/google`. The Android connection screen exposes a placeholder
+“Continue with Google” action that explains the pending setup; it does not fake success. Google
+requires the server to be configured with a Google web client ID, the Android app to use the same
+client ID as `serverClientId`, and the user's Google identity to be linked to an existing Melodee
+account. See [ADR-0012](../adr/0012-google-sign-in-plan.md).
+
+## 11. Not yet qualified
 
 - No authorised live server/account; all network evidence is fixture-based.
 - No DHU or physical-vehicle run.

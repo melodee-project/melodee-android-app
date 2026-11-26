@@ -18,3 +18,7 @@ captures/
 !**/.env.example
 # Keep the official Gradle wrapper binary and Room schema history.
 !gradle/wrapper/gradle-wrapper.jar
+
+# Python tooling caches
+__pycache__/
+*.pyc

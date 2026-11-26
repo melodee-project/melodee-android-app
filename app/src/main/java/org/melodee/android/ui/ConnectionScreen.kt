@@ -24,6 +24,7 @@ fun ConnectionScreen(vm: PlayerViewModel, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var success by remember { mutableStateOf(false) }
+    var showGooglePlaceholder by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         PageHeader("Connect", "Use your Melodee server account.", onBack)
         Text("Melodee connects directly to your server. Use an HTTPS origin; the app never stores your password.",
@@ -81,11 +82,36 @@ fun ConnectionScreen(vm: PlayerViewModel, onBack: () -> Unit) {
             Spacer(Modifier.width(10.dp))
             Text(if (busy) "Connecting…" else "Connect")
         }
+        HorizontalDivider(modifier = Modifier.padding(vertical = 18.dp), color = Raised)
+        OutlinedButton(
+            onClick = { showGooglePlaceholder = true },
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("G", style = MaterialTheme.typography.titleMedium, color = Accent)
+            Spacer(Modifier.width(10.dp))
+            Text("Continue with Google")
+        }
+        Text("Google sign-in is being set up. Use your Melodee username and password for now.",
+            color = Muted, style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(top = 8.dp))
         TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), enabled = !busy) {
             Text("Not now")
         }
         Spacer(Modifier.height(24.dp))
         Text("Why HTTPS? Melodee sends credentials and signed stream URLs. Cleartext is accepted only for debug loopback builds.",
             color = Muted, style = MaterialTheme.typography.labelSmall)
+    }
+    if (showGooglePlaceholder) {
+        AlertDialog(
+            onDismissRequest = { showGooglePlaceholder = false },
+            title = { Text("Google sign-in") },
+            text = {
+                Text("Google sign-in will be available after the Google OAuth app and Melodee server configuration are complete. For now, sign in with your Melodee username and password.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showGooglePlaceholder = false }) { Text("OK") }
+            },
+        )
     }
 }

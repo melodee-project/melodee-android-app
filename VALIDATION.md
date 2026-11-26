@@ -58,7 +58,7 @@ libraries: OkHttp 5.4.0, kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk
 
 | Check | Result | Evidence / meaning |
 |---|---|---|
-| `./gradlew test --warning-mode=all` | **PASS — 54/54 unit tests** | 31 existing core tests + 23 app tests: 8 API/origin contract, 5 refresh classification, 5 session manager, 5 prefetch executor; 0 failures/errors/skips. |
+| `./gradlew test --warning-mode=all` | **PASS — 55/55 unit tests** | 31 existing core tests + 24 app tests: 9 API/origin contract, 5 refresh classification, 5 session manager, 5 prefetch executor; 0 failures/errors/skips. |
 | `./gradlew :app:lintDebug` | **PASS — 0 errors, 30 warnings** | Warnings are dependency/toolchain advisories, intentional exported media components, target API 37 advisory, KTX suggestions and the unchanged release shrink policy. No suppression or baseline was added. |
 | `./gradlew :app:assembleRelease` | **PASS** | R8 release packaging succeeds with the new network/cache dependencies; artifact remains unsigned by policy. |
 | `./gradlew :app:connectedDebugAndroidTest` | **PASS — 11/11 tests** | 1 original demo service/controller smoke test, 4 Keystore store tests, 1 Room v1→v2 migration test, 3 live catalog/cache/queue tests, 1 live signed-audio service test, 1 live phone UI test. |
@@ -84,6 +84,23 @@ libraries: OkHttp 5.4.0, kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk
 These are product-qualification gaps, not claims of completion. The contract limitations and
 server-side rotation uncertainty are documented in [docs/api/CONTRACT.md](docs/api/CONTRACT.md)
 and [ADR-0011](docs/adr/0011-live-native-api-integration.md).
+
+### Production endpoint probe and auth status (2026-11-26)
+
+The supplied production origin was probed without credentials:
+
+| Probe | Result |
+|---|---|
+| `GET /readyz` | **200** — `{"service":"melodee-server","version":"0.3.0","status":"ready"}` |
+| `GET /api/v1/albums` | **401** — native API route exists and requires authentication |
+| `GET /openapi/v1.json` | **404** — the Rust server does not publish this legacy document; the local clone is the route reference |
+| `POST /api/v1/auth/google` with a fake token | **400** — `Google authentication is not enabled` |
+
+The username/password production login/catalog/stream flow has **not been executed** because no
+authorised test account was supplied. `scripts/melodee_prod_smoke.py` performs that read-only
+flow when credentials are available through environment variables and prints no tokens or signed
+URLs. The Android connection screen shows a truthful “Continue with Google” placeholder; Google
+remains untested and disabled on the server.
 
 ## Build environment at original starter validation (historical)
 
