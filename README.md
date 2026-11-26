@@ -11,8 +11,8 @@ The installed app is named **Melodee** and uses the supplied Melodee logo. This 
 ## Open and run in Android Studio
 
 1. Extract the ZIP and open the **`melodee-android` directory** containing `settings.gradle.kts`. Do not open only `app/`.
-2. Use Android Studio compatible with AGP 8.13.2. Select a compatible Gradle JDK (17 or newer; JDK 21 is the verification baseline).
-3. Install **Android SDK Platform 36** and any Build Tools requested by Studio. Let Gradle sync download the pinned dependencies; the first sync requires internet access to the standard Android/Maven/Gradle repositories.
+2. Use Android Studio **Rabbit 2 (2026.2.2) or newer**, the minimum release that supports AGP 9.5. Install and select **JDK 21** for Gradle; the build requires it. Gradle **9.6.1** is supplied by the checked-in wrapper.
+3. Install **Android SDK Platform 36** and Build Tools **36.0.0**. Let Gradle sync download the pinned dependencies; the first sync requires internet access to the standard Android/Maven/Gradle repositories.
 4. In Device Manager, create a phone emulator running **API 29 or newer**; API 36 is the recommended first test.
 5. Select the **app** run configuration/module and press **Run**.
 6. In **Melodee**, choose a demo album or track and press Play. Test the mini-player, Now Playing, queue, Search and Library. Playback uses real Media3 audio, not an animated mock player.
@@ -39,7 +39,7 @@ On Windows, use `gradlew.bat` in place of `./gradlew`. The debug APK is generate
 | Android Auto foundation | MediaLibraryService, demo browsing/search, track-to-album expansion and local artwork provider |
 | Core logic | Context-aware prefetch planning, stable cache identity, coordinated token renewal contracts and tests |
 | Preferences | DataStore-backed demo favorites and playback preferences |
-| Product documentation | PRD, SPEC, phased IMPLEMENTATION plan, nine ADRs, UX/design rules and coding-agent instructions |
+| Product documentation | PRD, SPEC, phased IMPLEMENTATION plan, ten ADRs, UX/design rules and coding-agent instructions |
 | Design references | Exact supplied logo and selected concept image, with superseded mockup text documented |
 | Build | Gradle wrapper, version catalog and reproducible native project structure |
 
@@ -106,7 +106,9 @@ Follow Phase 1 in [IMPLEMENTATION.md](IMPLEMENTATION.md). Pin the exact native M
 
 Kotlin • Compose/Material 3 • Navigation Compose • Media3 • coroutines/Flow • manual dependency injection. The live integration target adds Retrofit/OkHttp/kotlinx.serialization as needed. The native project contains persistence dependencies where used. Exact versions live in `gradle/libs.versions.toml`; the chosen baseline is deliberately pinned rather than dynamically “latest.”
 
-`org.melodee.android` is the starter application ID; confirm namespace ownership and distribution policy before publication. Minimum API 29 is a starter decision recorded in [ADR-0007](docs/adr/0007-build-and-compatibility.md).
+The build baseline is AGP 9.5.3 with AGP built-in Kotlin, Gradle 9.6.1, Kotlin 2.4.21, KSP 2.3.14, JDK 21 and compile/target SDK 36. The build scripts use Gradle Kotlin DSL and the public `android` DSL without legacy compatibility opt-outs. See [ADR-0010](docs/adr/0010-modern-build-toolchain.md).
+
+`org.melodee.android` is the starter application ID; confirm namespace ownership and distribution policy before publication. Minimum API 29 is a starter decision recorded in [ADR-0007](docs/adr/0007-build-and-compatibility.md) and retained by ADR-0010.
 
 The default build uses a 2 GiB Gradle heap, two workers and in-process Kotlin compilation
 to keep Android Studio and an emulator usable alongside it. Override these locally

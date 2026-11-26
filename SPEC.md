@@ -18,15 +18,15 @@ The full production architecture below is a target specification. A Kotlin polic
 | Application ID and namespace | `org.melodee.android` — confirm ownership before publication |
 | Minimum Android API | 29 / Android 10; compatibility decision subject to review |
 | Compile/target API | 36 |
-| JDK | 17 or newer compatible JDK; development verification uses 21 where available |
-| Gradle | 8.13 with checked-in wrapper |
-| Android Gradle Plugin | 8.13.2 |
-| Kotlin | 2.2.21 |
+| JDK | 21 (required to run Gradle and compile; Java/Kotlin bytecode target 17) |
+| Gradle | 9.6.1 with checked-in wrapper and official distribution checksum |
+| Android Gradle Plugin | 9.5.3 with built-in Kotlin and the public `android` DSL |
+| Kotlin | 2.4.21 (Kotlin Gradle Plugin); KSP 2.3.14 |
 | Compose BOM | 2025.10.01 |
 | Media3 | 1.8.0 |
 | Navigation | Navigation Compose 2.9.5 |
 
-These are a deliberately pinned, coherent compatibility baseline, **not a claim to be the latest versions**. Authoritative dependency values live in `gradle/libs.versions.toml`. Upgrade as a reviewed change with compatibility/build evidence. Navigation 3 remains a future evaluation; it is not silently mixed with Navigation Compose in the starter. See ADR-0004 and ADR-0007.
+These are a deliberately pinned, coherent compatibility baseline, **not a claim to be the latest versions**. Authoritative dependency values live in `gradle/libs.versions.toml`. Upgrade as a reviewed change with compatibility/build evidence. Navigation 3 remains a future evaluation; it is not silently mixed with Navigation Compose in the starter. See ADR-0004, the superseded ADR-0007 and the current ADR-0010.
 
 ### Modules
 

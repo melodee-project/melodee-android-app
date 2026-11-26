@@ -22,6 +22,10 @@ The repository is a real Android Studio starting point, not the completed produc
 
 This is the intended starter boundary; [VALIDATION.md](VALIDATION.md) is authoritative for checks actually executed. A feature's presence in SPEC is not evidence that it is implemented. Do not convert a planned row into “done” based only on a class or a passing mock test.
 
+### Current build baseline
+
+Gradle 9.6.1 (official wrapper and checksum), Android Gradle Plugin 9.5.3 with built-in Kotlin, Kotlin 2.4.21, KSP 2.3.14, JDK 21, compile/target SDK 36 and minimum SDK 29. The 2026-11-26 toolchain modernization is recorded in [ADR-0010](docs/adr/0010-modern-build-toolchain.md) and [TOOLCHAIN-UPGRADE-RESULTS.md](TOOLCHAIN-UPGRADE-RESULTS.md); [VALIDATION.md](VALIDATION.md) records the re-run evidence. Release signing/publication, Android Auto DHU and physical-vehicle qualification, and live-server integration remain separate outstanding work.
+
 ## 2. Delivery rules
 
 Work through the following phases as one coordinated implementation program. Continue autonomously across normal implementation decisions. Pause only for a concrete missing contract/access decision that cannot be resolved from the authorized scope, or an incompatible product decision. Keep every phase buildable and maintain evidence; do not turn all phases into a list of claims at the end.

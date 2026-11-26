@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -196,7 +197,7 @@ fun LibraryScreen(vm: PlayerViewModel, settings: UserSettings, playback: Playbac
                 }
             }
             "Playlists" -> items(vm.catalog.playlists, key = { it.id }) { playlist ->
-                SettingRow(Icons.Rounded.QueueMusic, playlist.title, "${playlist.trackIds.size} tracks",
+                SettingRow(Icons.AutoMirrored.Rounded.QueueMusic, playlist.title, "${playlist.trackIds.size} tracks",
                     onClick = { onPlaylist(playlist.id) }, trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = Muted) })
             }
             else -> {

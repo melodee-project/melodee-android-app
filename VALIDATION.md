@@ -7,7 +7,43 @@ This record describes checks executed while producing the starter. It distinguis
 local demo playback from production Melodee streaming and real-car qualification.
 The source in the packaged Git repository is the baseline for subsequent work.
 
-## Build environment
+## Toolchain modernization revalidation (current baseline)
+
+On 2026-11-26 the build toolchain was modernized on branch
+`chore/upgrade-android-toolchain`. The checks below were executed after the change
+and supersede the build-environment statement for current work. The original starter
+validation remains recorded further down for history.
+
+Environment: Linux x86_64; Eclipse Temurin JDK 21.0.13.1; Gradle 9.6.1 from the
+checked-in wrapper with the official SHA-256 checksum; Android Gradle Plugin 9.5.3
+with built-in Kotlin; Kotlin 2.4.21; KSP 2.3.14; Android SDK Platform 36 and Build
+Tools 36.0.0; minimum API 29; Pixel 9 Pro XL AVD running API 37.
+
+| Check | Result | Evidence / meaning |
+|---|---|---|
+| `./gradlew --version` | **PASS** | Gradle 9.6.1, launcher/daemon JVM Temurin 21.0.13.1. |
+| `./gradlew help` | **PASS** | Configuration and built-in Kotlin setup load without error. |
+| `./gradlew projects` | **PASS** | Root, `:app` and `:core` resolve. |
+| `./gradlew build --dry-run` | **PASS** | Full task graph configures, including debug/release/lint/unit tests. |
+| `./gradlew build assembleDebugAndroidTest --warning-mode=all` | **PASS** | Debug and R8 release builds, 31 core unit tests (0 failures/errors/skips), lint and instrumentation APK. No Gradle deprecation warnings or Kotlin compiler warnings. |
+| `./gradlew :app:lintDebug` | **PASS — 0 errors, 25 warnings** | Warnings are dependency-version advisories, intentional exported media components, target/compile API 37 advisories, pre-existing icon/KTX suggestions and the unchanged release resource-shrinking policy. |
+| `./gradlew :app:assembleRelease` | **PASS** | R8 minification and packaging completed; release APK remains unsigned by policy. |
+| `./gradlew :app:connectedDebugAndroidTest` | **PASS — 1/1 test** | `MediaLibrarySmokeTest` on the API 37 emulator: browse roots/album, search, real audio playback, three-track queue and next track without player error. |
+| Manual debug install and launch | **PASS** | Installed label **Melodee**; Home, Search, Library and Settings render correctly. |
+| Manual demo playback | **PASS** | Album queue played **First Light**, advanced to **Open Road** with no player error; pause/next/seek/shuffle/repeat controls responded. |
+| Background playback | **PASS** | Session remained `PLAYING` with the process backgrounded. |
+| Queue/position restoration | **PASS** | After force-stop and relaunch the Open Road queue returned at its saved position, paused. |
+| Configuration cache evaluation | **PASS, not enabled** | Entries stored and reused for assemble, test, lint, release and connected-test tasks; the flag is left off to preserve the documented conservative build defaults. |
+
+Android Auto manifest/packaged-artifact checks passed: the merged and packaged manifest
+retains the MediaLibraryService/MediaBrowserService declarations, `MEDIA_PLAY_FROM_SEARCH`,
+media playback foreground service type, MediaButtonReceiver, artwork provider and the
+`com.google.android.gms.car.application` metadata; `res/xml/automotive_app_desc.xml`
+still declares `media`. DHU and physical-vehicle tests were **not run** and remain
+outstanding qualification requirements. The unsigned release artifact was inspected
+statically (manifest, resources, assets and classes present) but not installed.
+
+## Build environment at original starter validation (historical)
 
 - Linux x86_64, JDK 21.
 - Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin 2.2.21.
@@ -18,10 +54,10 @@ The source in the packaged Git repository is the baseline for subsequent work.
 
 The first combined Gradle/emulator run exhausted the comfortable memory budget of
 this workspace. The build was restarted with bounded memory and concurrency. Repo
-defaults now use a 2 GiB Gradle heap, two workers and in-process Kotlin compilation.
+defaults use a 2 GiB Gradle heap, two workers and in-process Kotlin compilation.
 This is a development-tooling resource choice, not a measured application performance claim.
 
-## Executed checks
+## Original starter validation checks
 
 | Check | Result | Evidence / meaning |
 |---|---|---|

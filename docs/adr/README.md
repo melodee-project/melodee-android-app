@@ -10,9 +10,10 @@ ADRs record decisions, their rationale and consequences. **Accepted** records re
 | [0004](0004-native-stack.md) | Native Kotlin, Compose and Media3 starter | Accepted for starter; revisit with evidence |
 | [0005](0005-one-playback-session.md) | Service-owned player and authoritative queue | Accepted architecture |
 | [0006](0006-cache-identity-and-bounds.md) | Stable scoped identity and bounded temporary cache | Accepted architecture; integrated executor pending |
-| [0007](0007-build-and-compatibility.md) | Pinned build baseline and SDK support | Accepted for starter; distribution floor provisional |
+| [0007](0007-build-and-compatibility.md) | Pinned build baseline and SDK support | Superseded by [0010](0010-modern-build-toolchain.md); SDK floor retained |
 | [0008](0008-demo-and-live-boundaries.md) | Honest runnable demo and explicit live integration boundary | Accepted starter delivery |
 | [0009](0009-rotation-ambiguity.md) | Treat uncertain refresh rotation explicitly | Accepted client behavior; server recovery decision open |
+| [0010](0010-modern-build-toolchain.md) | Modern AGP 9.5.3 / Gradle 9.6.1 toolchain and built-in Kotlin | Accepted — current build baseline |
 
 ## Template
 

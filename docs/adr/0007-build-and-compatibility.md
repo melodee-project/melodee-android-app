@@ -1,7 +1,7 @@
 # ADR-0007 — Reproducible build and initial compatibility floor
 
 - **Date:** 2026-11-26
-- **Status:** Accepted starter baseline; final device-support policy remains provisional
+- **Status:** Superseded by [ADR-0010](0010-modern-build-toolchain.md); retained as historical baseline
 
 ## Context
 

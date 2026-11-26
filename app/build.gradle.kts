@@ -1,15 +1,12 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
 android {
     namespace = "org.melodee.android"
     compileSdk = 36
-    buildToolsVersion = "36.0.0"
     defaultConfig {
         applicationId = "org.melodee.android"
         minSdk = 29
@@ -33,7 +30,13 @@ android {
     testOptions { unitTests.isIncludeAndroidResources = true }
     lint { abortOnError = true }
 }
-kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
 dependencies {

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,7 +48,7 @@ fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, settings: User
                 Text("ALBUM", fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
                 Text(album.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp))
             }
-            IconButton(onClick = onQueue) { Icon(Icons.Rounded.QueueMusic, "Open queue") }
+            IconButton(onClick = onQueue) { Icon(Icons.AutoMirrored.Rounded.QueueMusic, "Open queue") }
         }
         Spacer(Modifier.height(18.dp))
         Cover(album.artwork, Modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(1f), "${album.title} album artwork")
@@ -98,7 +99,7 @@ fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, settings: User
             }
         }
         FilledTonalButton(onClick = onQueue, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Rounded.QueueMusic, null)
+            Icon(Icons.AutoMirrored.Rounded.QueueMusic, null)
             Spacer(Modifier.width(10.dp))
             Text("Up next")
             Spacer(Modifier.weight(1f))
