@@ -34,8 +34,63 @@ interface PlaybackDao {
     suspend fun clear()
 }
 
-@Database(entities = [PlaybackBookmark::class], version = 1, exportSchema = true)
+@Entity(tableName = "cached_catalog", primaryKeys = ["accountKey", "kind", "id"])
+data class CachedCatalogEntity(
+    val accountKey: String,
+    val kind: String,
+    val id: String,
+    val payload: String,
+    val updatedAt: Long,
+)
+
+@Dao
+interface CatalogCacheDao {
+    @Query("SELECT * FROM cached_catalog WHERE accountKey = :accountKey AND kind = :kind")
+    suspend fun loadKind(accountKey: String, kind: String): List<CachedCatalogEntity>
+
+    @Query("SELECT * FROM cached_catalog WHERE accountKey = :accountKey AND kind = :kind AND id = :id")
+    suspend fun load(accountKey: String, kind: String, id: String): CachedCatalogEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun save(entry: CachedCatalogEntity)
+
+    @Query("DELETE FROM cached_catalog WHERE accountKey = :accountKey")
+    suspend fun deleteAccount(accountKey: String)
+
+    @Query("DELETE FROM cached_catalog")
+    suspend fun clear()
+}
+
+@Dao
+interface QueueSnapshotDao {
+    @Query("SELECT * FROM queue_snapshot WHERE accountKey = :accountKey")
+    suspend fun load(accountKey: String): QueueSnapshotEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun save(snapshot: QueueSnapshotEntity)
+
+    @Query("DELETE FROM queue_snapshot WHERE accountKey = :accountKey")
+    suspend fun delete(accountKey: String)
+
+    @Query("DELETE FROM queue_snapshot")
+    suspend fun clear()
+}
+
+@Entity(tableName = "queue_snapshot")
+data class QueueSnapshotEntity(
+    @PrimaryKey val accountKey: String,
+    val payload: String,
+    val updatedAt: Long,
+)
+
+@Database(
+    entities = [PlaybackBookmark::class, CachedCatalogEntity::class, QueueSnapshotEntity::class],
+    version = 2,
+    exportSchema = true,
+)
 abstract class PlaybackDatabase : RoomDatabase() {
     abstract fun playbackDao(): PlaybackDao
+    abstract fun catalogCacheDao(): CatalogCacheDao
+    abstract fun queueSnapshotDao(): QueueSnapshotDao
 }
 

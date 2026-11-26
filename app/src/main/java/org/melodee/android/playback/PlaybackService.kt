@@ -9,6 +9,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.media3.session.LibraryResult
@@ -29,6 +30,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -36,27 +38,43 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.melodee.android.MainActivity
 import org.melodee.android.MelodeeApplication
+import org.melodee.android.catalog.LiveMediaItems
+import org.melodee.android.catalog.MusicCatalog
 import org.melodee.android.data.PlaybackBookmark
+import org.melodee.android.model.CatalogMode
+import org.melodee.android.model.PlaybackSnapshot
+import org.melodee.android.model.QueueContext
+import org.melodee.android.model.QueueEntry
+import org.melodee.android.model.Track
+import org.melodee.core.cache.PlaybackContext
+import org.melodee.core.auth.AccountScope
 
 /** The sole player owner. The Activity, car host and notification are session clients. */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackService : MediaLibraryService() {
     private val app get() = application as MelodeeApplication
+    private val container get() = app.container
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val bookmarkMutex = Mutex()
     private val initialStateReady = CompletableDeferred<Unit>()
     private lateinit var player: ExoPlayer
     private var session: MediaLibrarySession? = null
     private var rememberPosition = false
+    private var cachedCatalog: MusicCatalog? = null
+    private var accountScope: AccountScope? = null
+    private var queueContext = QueueContext.MANUAL
+    private var queueContextId: String? = null
 
     override fun onCreate() {
         super.onCreate()
-        player = ExoPlayer.Builder(this).build().apply {
-            setAudioAttributes(AudioAttributes.Builder()
-                .setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
-            setHandleAudioBecomingNoisy(true)
-            setWakeMode(C.WAKE_MODE_LOCAL)
-        }
+        player = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(container.audioCache.mediaSourceFactory)
+            .build().apply {
+                setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
+                setHandleAudioBecomingNoisy(true)
+                setWakeMode(C.WAKE_MODE_LOCAL)
+            }
         session = MediaLibrarySession.Builder(this, player, LibraryCallback())
             .setSessionActivity(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
@@ -68,12 +86,25 @@ class PlaybackService : MediaLibraryService() {
                 val settings = app.preferences.settings.first()
                 rememberPosition = settings.rememberPosition
                 player.setHandleAudioBecomingNoisy(settings.pauseOnDisconnect)
+                val catalog = catalog()
+                val account = container.session.currentAccount()
+                accountScope = account?.let { AccountScope(it.serverId, it.accountId) }
                 val saved = bookmarkMutex.withLock {
-                    if (rememberPosition) app.database.playbackDao().load()
-                    else { app.database.playbackDao().clear(); null }
+                    if (!rememberPosition) {
+                        app.database.playbackDao().clear()
+                        accountScope?.let { container.queueStore.clear(it) }
+                        null
+                    } else if (catalog.mode == CatalogMode.LIVE) {
+                        accountScope?.let { container.queueStore.load(it) }
+                    } else {
+                        app.database.playbackDao().load()
+                    }
                 }
                 // A new controller request wins over state loaded asynchronously.
-                if (saved != null && player.mediaItemCount == 0) restore(saved)
+                if (saved != null && player.mediaItemCount == 0) {
+                    if (saved is PlaybackSnapshot) restoreLive(saved)
+                    else if (saved is PlaybackBookmark) restoreDemo(saved)
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -85,7 +116,10 @@ class PlaybackService : MediaLibraryService() {
                 app.preferences.settings.collect { settings ->
                     rememberPosition = settings.rememberPosition
                     player.setHandleAudioBecomingNoisy(settings.pauseOnDisconnect)
-                    if (!rememberPosition) bookmarkMutex.withLock { app.database.playbackDao().clear() }
+                    if (!rememberPosition) bookmarkMutex.withLock {
+                        app.database.playbackDao().clear()
+                        accountScope?.let { container.queueStore.clear(it) }
+                    }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -100,6 +134,27 @@ class PlaybackService : MediaLibraryService() {
                 saveBookmark()
             }
         }
+        scope.launch {
+            container.sessionCleared.collect {
+                cachedCatalog = null
+                accountScope = null
+                container.prefetchExecutor.cancel()
+                player.stop()
+                player.clearMediaItems()
+            }
+        }
+        scope.launch {
+            var previous: String? = null
+            container.accountFlow.distinctUntilChanged().collect { account ->
+                val current = account?.let { "${it.serverId}|${it.accountId}" }
+                if (previous != null && previous != current) {
+                    container.prefetchExecutor.cancel()
+                    cachedCatalog = null
+                        accountScope = null
+                }
+                previous = current
+            }
+        }
         player.addListener(object : Player.Listener {
             override fun onEvents(player: Player, events: Player.Events) {
                 if (initialStateReady.isCompleted && events.containsAny(
@@ -108,7 +163,50 @@ class PlaybackService : MediaLibraryService() {
                         Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED, Player.EVENT_REPEAT_MODE_CHANGED,
                     )) scope.launch { saveBookmark() }
             }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) schedulePrefetch() else container.prefetchExecutor.cancel()
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                schedulePrefetch()
+            }
+
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                schedulePrefetch()
+            }
+
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                schedulePrefetch()
+            }
         })
+    }
+
+    private fun schedulePrefetch() {
+        val catalog = cachedCatalog ?: return
+        if (catalog.mode != CatalogMode.LIVE || !player.isPlaying || player.mediaItemCount == 0) {
+            container.prefetchExecutor.cancel()
+            return
+        }
+        val tracks = (0 until player.mediaItemCount).mapNotNull { index ->
+            catalog.trackFromMediaItem(player.getMediaItemAt(index))
+        }
+        val context = when (queueContext) {
+            QueueContext.ALBUM -> PlaybackContext.ALBUM
+            QueueContext.PLAYLIST -> PlaybackContext.PLAYLIST
+            QueueContext.ARTIST -> PlaybackContext.ARTIST
+            QueueContext.RADIO -> PlaybackContext.RADIO
+            QueueContext.MANUAL -> PlaybackContext.MANUAL
+        }
+        container.prefetchExecutor.schedule(tracks, player.currentMediaItemIndex.coerceAtLeast(0), context)
+    }
+
+    private suspend fun catalog(): MusicCatalog {
+        cachedCatalog?.let { return it }
+        val selected = container.activeCatalog()
+        cachedCatalog = selected
+        accountScope = container.session.currentAccount()?.let { AccountScope(it.serverId, it.accountId) }
+        return selected
     }
 
     private suspend fun saveBookmark() {
@@ -117,8 +215,13 @@ class PlaybackService : MediaLibraryService() {
                 // Capture after locking so an old save cannot overwrite a newer queue
                 // or a preference-driven clear.
                 if (!rememberPosition) return@withLock
-                if (player.mediaItemCount == 0) app.database.playbackDao().clear()
-                else app.database.playbackDao().save(snapshot())
+                val catalog = cachedCatalog ?: catalog()
+                if (player.mediaItemCount == 0) {
+                    app.database.playbackDao().clear()
+                    accountScope?.let { container.queueStore.clear(it) }
+                    return@withLock
+                }
+                if (catalog.mode == CatalogMode.LIVE) saveLiveSnapshot() else saveDemoBookmark()
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -127,7 +230,48 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-    private fun snapshot(): PlaybackBookmark {
+    private suspend fun saveDemoBookmark() {
+        app.database.playbackDao().save(snapshotDemo())
+    }
+
+    private suspend fun saveLiveSnapshot() {
+        val account = accountScope ?: container.session.currentAccount()?.let {
+            AccountScope(it.serverId, it.accountId).also { scope -> accountScope = scope }
+        } ?: return
+        val entries = (0 until player.mediaItemCount).mapNotNull { index ->
+            val item = player.getMediaItemAt(index)
+            val track = LiveMediaItems.trackFrom(item) ?: return@mapNotNull null
+            QueueEntry(entryId = "$index:${item.mediaId}", track = track)
+        }
+        if (entries.isEmpty()) {
+            container.queueStore.clear(account)
+            return
+        }
+        container.queueStore.save(
+            account,
+            PlaybackSnapshot(
+                entries = entries,
+                currentIndex = player.currentMediaItemIndex.coerceAtLeast(0),
+                positionMs = player.currentPosition.coerceAtLeast(0),
+                shuffle = player.shuffleModeEnabled,
+                repeatMode = player.repeatMode,
+                shuffleOrder = actualOrder(),
+                context = queueContext,
+                contextId = queueContextId,
+            ),
+        )
+    }
+
+    private fun snapshotDemo(): PlaybackBookmark = PlaybackBookmark(
+        trackIds = (0 until player.mediaItemCount).joinToString("|") { player.getMediaItemAt(it).mediaId },
+        currentIndex = player.currentMediaItemIndex.coerceAtLeast(0),
+        positionMs = player.currentPosition.coerceAtLeast(0),
+        shuffle = player.shuffleModeEnabled,
+        repeatMode = player.repeatMode,
+        shuffleOrder = actualOrder().joinToString(","),
+    )
+
+    private fun actualOrder(): List<Int> {
         val order = mutableListOf<Int>()
         val visited = mutableSetOf<Int>()
         val timeline = player.currentTimeline
@@ -136,31 +280,39 @@ class PlaybackService : MediaLibraryService() {
             order += index
             index = timeline.getNextWindowIndex(index, Player.REPEAT_MODE_OFF, true)
         }
-        return PlaybackBookmark(
-            trackIds = (0 until player.mediaItemCount).joinToString("|") { player.getMediaItemAt(it).mediaId },
-            currentIndex = player.currentMediaItemIndex.coerceAtLeast(0),
-            positionMs = player.currentPosition.coerceAtLeast(0),
-            shuffle = player.shuffleModeEnabled,
-            repeatMode = player.repeatMode,
-            shuffleOrder = order.joinToString(","),
-        )
+        return order
     }
 
-    private fun restore(saved: PlaybackBookmark) {
+    private fun restoreDemo(saved: PlaybackBookmark) {
         val restored = resolveBookmark(saved) ?: return
         player.setMediaItems(restored.mediaItems, restored.startIndex, restored.startPositionMs)
-        restoreModes(saved, restored.mediaItems.size)
+        restoreModes(saved.shuffle, saved.repeatMode, parseShuffleOrder(saved.shuffleOrder), restored.mediaItems.size)
         player.prepare()
         // Never forces autoplay. A user or trusted controller must request play.
     }
 
-    private fun restoreModes(saved: PlaybackBookmark?, itemCount: Int) {
-        val order = saved?.shuffleOrder?.split(',')?.mapNotNull(String::toIntOrNull).orEmpty()
-        if (player.mediaItemCount == itemCount && order.size == itemCount && order.toSet() == (0 until itemCount).toSet()) {
-            player.setShuffleOrder(DefaultShuffleOrder(order.toIntArray(), 0L))
+    private fun parseShuffleOrder(value: String): List<Int> =
+        value.split(',').mapNotNull(String::toIntOrNull)
+
+    private fun restoreLive(saved: PlaybackSnapshot) {
+        val items = saved.entries.map { LiveMediaItems.mediaItem(it.track) }
+        if (items.isEmpty()) return
+        val index = saved.currentIndex.coerceIn(items.indices)
+        player.setMediaItems(items, index, saved.positionMs.coerceAtLeast(0))
+        restoreModes(saved.shuffle, saved.repeatMode, saved.shuffleOrder, items.size)
+        queueContext = saved.context
+        queueContextId = saved.contextId
+        player.prepare()
+    }
+
+    private fun restoreModes(shuffle: Boolean, repeatMode: Int, shuffleOrder: List<Int>, itemCount: Int) {
+        if (player.mediaItemCount == itemCount && shuffleOrder.size == itemCount &&
+            shuffleOrder.toSet() == (0 until itemCount).toSet()
+        ) {
+            player.setShuffleOrder(DefaultShuffleOrder(shuffleOrder.toIntArray(), 0L))
         }
-        player.shuffleModeEnabled = saved?.shuffle ?: false
-        player.repeatMode = saved?.repeatMode?.takeIf {
+        player.shuffleModeEnabled = shuffle
+        player.repeatMode = repeatMode.takeIf {
             it in setOf(Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ONE, Player.REPEAT_MODE_ALL)
         } ?: Player.REPEAT_MODE_OFF
     }
@@ -201,118 +353,154 @@ class PlaybackService : MediaLibraryService() {
                 putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM)
                 putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM)
             }
-            // Media3 advertises legacy search support from available library commands.
             val rootParams = LibraryParams.Builder().setExtras(styles).build()
-            return Futures.immediateFuture(LibraryResult.ofItem(app.catalog.node("root", "Melodee"), rootParams))
+            return future { LibraryResult.ofItem(catalog().root(), rootParams) }
         }
 
         override fun onGetChildren(session: MediaLibrarySession, browser: MediaSession.ControllerInfo,
             parentId: String, page: Int, pageSize: Int, params: LibraryParams?
-        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> =
-            if (browseNode(parentId) == null) Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE))
-            else itemPage(app.catalog.children(parentId), page, pageSize, params)
-
-        override fun onGetItem(session: MediaLibrarySession, browser: MediaSession.ControllerInfo,
-            mediaId: String): ListenableFuture<LibraryResult<MediaItem>> {
-            val item = app.catalog.track(mediaId)?.let(app.catalog::mediaItem) ?: browseNode(mediaId)
-            return Futures.immediateFuture(if (item == null)
-                LibraryResult.ofError(SessionError.ERROR_BAD_VALUE) else LibraryResult.ofItem(item, null))
-        }
-
-        private fun browseNode(id: String): MediaItem? = when (id) {
-            "root" -> app.catalog.node(id, "Melodee")
-            "home" -> app.catalog.node(id, "Home")
-            "albums" -> app.catalog.node(id, "Albums")
-            "playlists" -> app.catalog.node(id, "Playlists")
-            else -> when {
-                id.startsWith("album:") -> app.catalog.album(id.substringAfter(':'))?.let {
-                    app.catalog.node(id, it.title, it.artist, it.id)
-                }
-                id.startsWith("playlist:") -> app.catalog.playlist(id.substringAfter(':'))?.let {
-                    app.catalog.node(id, it.title, it.subtitle, "afterglow")
-                }
-                else -> null
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = future {
+            val selected = catalog()
+            if (selected.item(parentId) == null) {
+                LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
+            } else {
+                val items = selected.children(parentId, page, pageSize)
+                LibraryResult.ofItemList(items, params)
             }
         }
 
-        private fun itemPage(items: List<MediaItem>, page: Int, pageSize: Int, params: LibraryParams?):
-            ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
-            if (page < 0 || pageSize < 1) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE))
-            val offset = (page.toLong() * pageSize).coerceAtMost(items.size.toLong()).toInt()
-            return Futures.immediateFuture(LibraryResult.ofItemList(items.drop(offset).take(pageSize), params))
+        override fun onGetItem(session: MediaLibrarySession, browser: MediaSession.ControllerInfo,
+            mediaId: String): ListenableFuture<LibraryResult<MediaItem>> = future {
+            catalog().item(mediaId)?.let { LibraryResult.ofItem(it, null) }
+                ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         }
 
         override fun onSearch(session: MediaLibrarySession, browser: MediaSession.ControllerInfo,
-            query: String, params: LibraryParams?): ListenableFuture<LibraryResult<Void>> {
-            session.notifySearchResultChanged(browser, query, search(query).size, params)
-            return Futures.immediateFuture(LibraryResult.ofVoid())
+            query: String, params: LibraryParams?): ListenableFuture<LibraryResult<Void>> = future {
+            val count = catalog().searchCount(query)
+            session.notifySearchResultChanged(browser, query, count, params)
+            LibraryResult.ofVoid()
         }
 
         override fun onGetSearchResult(session: MediaLibrarySession, browser: MediaSession.ControllerInfo,
             query: String, page: Int, pageSize: Int, params: LibraryParams?
-        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = itemPage(search(query), page, pageSize, params)
-
-        private fun search(query: String): List<MediaItem> {
-            val playlist = app.catalog.playlists.firstOrNull { it.title.equals(query.trim(), ignoreCase = true) }
-            return playlist?.let { app.catalog.items(it.trackIds) }
-                ?: app.catalog.search(query).map(app.catalog::mediaItem)
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = future {
+            LibraryResult.ofItemList(catalog().search(query, page, pageSize), params)
         }
 
         override fun onAddMediaItems(session: MediaSession, controller: MediaSession.ControllerInfo,
-            mediaItems: List<MediaItem>): ListenableFuture<List<MediaItem>> = Futures.immediateFuture(resolve(mediaItems))
+            mediaItems: List<MediaItem>): ListenableFuture<List<MediaItem>> = future {
+            resolveItems(catalog(), mediaItems)
+        }
 
         override fun onSetMediaItems(session: MediaSession, controller: MediaSession.ControllerInfo,
             mediaItems: List<MediaItem>, startIndex: Int, startPositionMs: Long
-        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            // A car browser selects one track ID. Keep its album queued. Explicit lists
-            // from the phone retain exactly the requested queue.
-            val selected = mediaItems.singleOrNull()?.takeIf { it.requestMetadata.searchQuery == null }
-                ?.let { app.catalog.track(it.mediaId) }
-            if (controller.uid != Process.myUid() && selected != null) {
-                val album = app.catalog.items(app.catalog.album(selected.albumId)?.trackIds.orEmpty())
-                if (album.isNotEmpty()) return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(
-                    album, album.indexOfFirst { it.mediaId == selected.id }.coerceAtLeast(0),
-                    normalizedPosition(startPositionMs),
-                ))
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = future {
+            val selected = catalog()
+            val single = mediaItems.singleOrNull()?.takeIf { it.requestMetadata.searchQuery == null }
+            if (controller.uid != Process.myUid() && single != null) {
+                val expanded = selected.expandSelection(single.mediaId)
+                if (!expanded.isNullOrEmpty()) {
+                    queueContextId = single.mediaId
+                    queueContext = when {
+                        single.mediaId.contains("playlist") -> QueueContext.PLAYLIST
+                        single.mediaId.contains("artist") -> QueueContext.ARTIST
+                        else -> QueueContext.ALBUM
+                    }
+                    val items = selected.mediaItems(expanded)
+                    if (items.isNotEmpty()) {
+                        val selectedId = single.mediaId.removePrefix("live:track:")
+                        val index = expanded.indexOf(selectedId).takeIf { it >= 0 } ?: 0
+                        return@future MediaSession.MediaItemsWithStartPosition(
+                            items, index, normalizedPosition(startPositionMs),
+                        )
+                    }
+                }
             }
-            val resolved = resolve(mediaItems)
+            val resolved = resolveItems(selected, mediaItems)
             if (resolved.isEmpty() && mediaItems.isNotEmpty()) {
-                return Futures.immediateFailedFuture(IllegalArgumentException("No matching media"))
+                throw IllegalArgumentException("No matching media")
             }
             val index = if (resolved.isEmpty()) 0 else startIndex.coerceIn(resolved.indices)
-            return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(resolved, index,
-                normalizedPosition(startPositionMs)))
+            queueContext = QueueContext.MANUAL
+            queueContextId = null
+            MediaSession.MediaItemsWithStartPosition(resolved, index, normalizedPosition(startPositionMs))
+        }
+
+        override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo):
+            ListenableFuture<MediaSession.MediaItemsWithStartPosition> = future {
+            initialStateReady.await()
+            if (player.mediaItemCount > 0) {
+                val items = (0 until player.mediaItemCount).map { player.getMediaItemAt(it) }
+                return@future MediaSession.MediaItemsWithStartPosition(
+                    items, player.currentMediaItemIndex.coerceAtLeast(0), player.currentPosition.coerceAtLeast(0),
+                )
+            }
+            val selected = catalog()
+            val request = if (selected.mode == CatalogMode.LIVE) {
+                val account = accountScope ?: container.session.currentAccount()?.let {
+                    AccountScope(it.serverId, it.accountId).also { value -> accountScope = value }
+                }
+                val saved = account?.let { container.queueStore.load(it) }
+                if (saved != null) {
+                    player.shuffleModeEnabled = saved.shuffle
+                    player.repeatMode = saved.repeatMode
+                    queueContext = saved.context
+                    queueContextId = saved.contextId
+                    MediaSession.MediaItemsWithStartPosition(
+                        saved.entries.map { LiveMediaItems.mediaItem(it.track) },
+                        saved.currentIndex.coerceIn(saved.entries.indices),
+                        saved.positionMs.coerceAtLeast(0),
+                    )
+                } else {
+                    val fallbackTracks = runCatching {
+                        val album = selected.home().recentAlbums.firstOrNull()
+                        if (album != null) selected.albumTracks(album.id) else selected.tracks(1, 25)
+                    }.getOrDefault(emptyList())
+                    MediaSession.MediaItemsWithStartPosition(
+                        selected.mediaItems(fallbackTracks.map(Track::id)), 0, 0,
+                    )
+                }
+            } else {
+                val saved = bookmarkMutex.withLock {
+                    if (rememberPosition) app.database.playbackDao().load() else null
+                }
+                if (saved != null) {
+                    player.shuffleModeEnabled = saved.shuffle
+                    player.repeatMode = saved.repeatMode
+                }
+                saved?.let(::resolveBookmark) ?: run {
+                    val fallback = app.catalog.albums.firstOrNull()
+                        ?.let { app.catalog.items(it.trackIds) }.orEmpty()
+                    MediaSession.MediaItemsWithStartPosition(fallback, 0, 0)
+                }
+            }
+            request
         }
 
         private fun normalizedPosition(position: Long) = if (position == C.TIME_UNSET) 0L else position.coerceAtLeast(0)
 
-        private fun resolve(items: List<MediaItem>): List<MediaItem> = items.flatMap { item ->
-            val query = item.requestMetadata.searchQuery
-            when {
-                query != null -> search(query)
-                item.mediaId.startsWith("album:") -> app.catalog.items(
-                    app.catalog.album(item.mediaId.substringAfter(':'))?.trackIds.orEmpty())
-                item.mediaId.startsWith("playlist:") -> app.catalog.items(
-                    app.catalog.playlist(item.mediaId.substringAfter(':'))?.trackIds.orEmpty())
-                else -> listOfNotNull(app.catalog.track(item.mediaId)?.let(app.catalog::mediaItem))
+        private suspend fun resolveItems(catalog: MusicCatalog, items: List<MediaItem>): List<MediaItem> =
+            items.flatMap { item ->
+                val query = item.requestMetadata.searchQuery
+                when {
+                    query != null -> catalog.search(query, 1, 100)
+                    item.mediaId.startsWith("live:track:") ->
+                        catalog.mediaItems(listOf(item.mediaId.removePrefix("live:track:")))
+                    item.mediaId.startsWith("album:") || item.mediaId.startsWith("playlist:") ||
+                        item.mediaId.startsWith("live:album:") || item.mediaId.startsWith("live:playlist:") ||
+                        item.mediaId.startsWith("live:artist:") || item.mediaId == "live:favorites" -> {
+                        catalog.expandSelection(item.mediaId)?.let { catalog.mediaItems(it) }.orEmpty()
+                    }
+                    else -> catalog.mediaItems(listOf(item.mediaId))
+                }
             }
-        }
 
-        override fun onPlaybackResumption(session: MediaSession, controller: MediaSession.ControllerInfo):
-            ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            val result = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+        private fun <T> future(block: suspend () -> T): ListenableFuture<T> {
+            val result = SettableFuture.create<T>()
             val job = scope.launch {
                 try {
-                    initialStateReady.await()
-                    val saved = if (player.mediaItemCount > 0) snapshot() else bookmarkMutex.withLock {
-                        if (rememberPosition) app.database.playbackDao().load() else null
-                    }
-                    val restored = saved?.let(::resolveBookmark)
-                    val fallback = app.catalog.albums.firstOrNull()?.let { app.catalog.items(it.trackIds) }.orEmpty()
-                    val request = restored ?: MediaSession.MediaItemsWithStartPosition(fallback, 0, 0)
-                    // Existing queue already has its player modes; avoid regenerating shuffle.
-                    if (player.mediaItemCount == 0) restoreModes(saved, request.mediaItems.size)
-                    result.set(request)
+                    result.set(block())
                 } catch (cancelled: CancellationException) {
                     result.cancel(false)
                     throw cancelled

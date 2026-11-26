@@ -1,23 +1,18 @@
-INSTRUMENTATION_STATUS: class=org.melodee.android.MediaLibrarySmokeTest
-INSTRUMENTATION_STATUS: current=1
-INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
-INSTRUMENTATION_STATUS: numtests=1
-INSTRUMENTATION_STATUS: stream=
-org.melodee.android.MediaLibrarySmokeTest:
-INSTRUMENTATION_STATUS: test=browserResolvesCatalogAndPlaysAnAlbumQueue
-INSTRUMENTATION_STATUS_CODE: 1
-INSTRUMENTATION_STATUS: class=org.melodee.android.MediaLibrarySmokeTest
-INSTRUMENTATION_STATUS: current=1
-INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
-INSTRUMENTATION_STATUS: numtests=1
-INSTRUMENTATION_STATUS: stream=.
-INSTRUMENTATION_STATUS: test=browserResolvesCatalogAndPlaysAnAlbumQueue
-INSTRUMENTATION_STATUS_CODE: 0
-INSTRUMENTATION_RESULT: stream=
+Environment: Pixel 9 Pro XL AVD, API 37; Gradle 9.6.1; AGP 9.5.3
+Command: ./gradlew :app:connectedDebugAndroidTest
+Result: BUILD SUCCESSFUL; tests=11 failures=0 errors=0 skipped=0
 
-Time: 106.6
+Tests executed:
+- org.melodee.android.LiveLibraryUiTest#connectedLibraryRendersOnPhone
+- org.melodee.android.LivePlaybackSmokeTest#liveAlbumPlaysThroughBrowserAndSharedSession
+- org.melodee.android.MediaLibrarySmokeTest#browserResolvesCatalogAndPlaysAnAlbumQueue
+- org.melodee.android.data.PlaybackDatabaseMigrationTest#migrationOneToTwoKeepsDemoBookmarkAndAddsLiveTables
+- org.melodee.android.live.auth.KeystoreSessionStoreTest#encryptedRoundTripAndAtomicReplacement
+- org.melodee.android.live.auth.KeystoreSessionStoreTest#pendingRotationMarkerSurvivesRoundTrip
+- org.melodee.android.live.auth.KeystoreSessionStoreTest#corruptCiphertextFailsClosedAndIsRemoved
+- org.melodee.android.live.auth.KeystoreSessionStoreTest#clearDeletesCiphertext
+- org.melodee.android.live.catalog.LiveMusicCatalogTest#liveQueueSnapshotIsAccountScopedAndContainsNoSignedUrl
+- org.melodee.android.live.catalog.LiveMusicCatalogTest#loginThenAlbumSongsAndMediaItems
+- org.melodee.android.live.catalog.LiveMusicCatalogTest#cachedAlbumsRemainReadableWhenServerIsGone
 
-OK (1 test)
-
-
-INSTRUMENTATION_CODE: -1
+Raw XML/report output is generated under app/build/outputs/androidTest-results/ and is not committed.

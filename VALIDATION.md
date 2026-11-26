@@ -47,6 +47,44 @@ still declares `media`. DHU and physical-vehicle tests were **not run** and rema
 outstanding qualification requirements. The unsigned release artifact was inspected
 statically (manifest, resources, assets and classes present) but not installed.
 
+## Live native API integration validation (2026-11-26)
+
+The live client was implemented against the captured native-v1 contract and deterministic
+MockWebServer fixtures. **No authorised live Melodee deployment or account was supplied**, so
+this section records local transport/service behavior, not live-server or vehicle qualification.
+
+Environment: same Linux/JDK 21/SDK 36 environment; Pixel 9 Pro XL API 37 emulator. Added runtime
+libraries: OkHttp 5.4.0, kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
+
+| Check | Result | Evidence / meaning |
+|---|---|---|
+| `./gradlew test --warning-mode=all` | **PASS — 54/54 unit tests** | 31 existing core tests + 23 app tests: 8 API/origin contract, 5 refresh classification, 5 session manager, 5 prefetch executor; 0 failures/errors/skips. |
+| `./gradlew :app:lintDebug` | **PASS — 0 errors, 30 warnings** | Warnings are dependency/toolchain advisories, intentional exported media components, target API 37 advisory, KTX suggestions and the unchanged release shrink policy. No suppression or baseline was added. |
+| `./gradlew :app:assembleRelease` | **PASS** | R8 release packaging succeeds with the new network/cache dependencies; artifact remains unsigned by policy. |
+| `./gradlew :app:connectedDebugAndroidTest` | **PASS — 11/11 tests** | 1 original demo service/controller smoke test, 4 Keystore store tests, 1 Room v1→v2 migration test, 3 live catalog/cache/queue tests, 1 live signed-audio service test, 1 live phone UI test. |
+| Keystore round-trip | **PASS** | AES-GCM encrypted record, atomic replacement, pending-rotation marker, corrupt-ciphertext fail-closed and delete. Tokens were not present in the ciphertext file. |
+| Room migration | **PASS** | v1 demo bookmark survives; `cached_catalog` and `queue_snapshot` tables are created and usable. |
+| Live catalog fixture test | **PASS** | Login, album list/detail/songs, media-item metadata, album expansion, cached album fallback when the fixture server is gone, account-scoped queue snapshot with duplicate entries and no signed URL. |
+| Live playback fixture test | **PASS** | Real MediaLibraryService/MediaBrowser, live album browse, signed `melodee://` resolution through `AudioCache`, actual bundled OGG bytes served by MockWebServer, playback reached READY and advanced. |
+| Live phone UI test | **PASS** | After fixture login, the phone Home surface rendered “Northern Lights” from the live catalog. |
+| Demo regression | **PASS** | Original `MediaLibrarySmokeTest` still passes: roots/album, playlist search, real audio, three-track queue and next track. |
+
+### Not executed or not qualified
+
+- Authorised live-server login, real access-token expiry, concurrent 401 bursts, rotating refresh
+  over the network, ambiguous lost refresh responses and IP-bound signed URL invalidation.
+- Real byte-range/HEAD behavior, Wi-Fi↔cellular transition, dead-zone endurance, four-hour
+  playback, large FLAC/gapless matrix, low storage/disk-full, cache eviction under real load.
+- Android Auto DHU and physical vehicle; live browse/search were exercised through the real
+  MediaLibraryService/MediaBrowser fixture path only.
+- Instrumented release artifact (unsigned) and release signing.
+- Diagnostics export, TalkBack audit, large-font/landscape matrix and measured performance budgets.
+- Structured diagnostic export and user-triggered sanitized bundle.
+
+These are product-qualification gaps, not claims of completion. The contract limitations and
+server-side rotation uncertainty are documented in [docs/api/CONTRACT.md](docs/api/CONTRACT.md)
+and [ADR-0011](docs/adr/0011-live-native-api-integration.md).
+
 ## Build environment at original starter validation (historical)
 
 - Linux x86_64, JDK 21.

@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -23,14 +22,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.melodee.android.data.DemoCatalog
-import org.melodee.android.data.DemoTrack
+import coil3.compose.AsyncImage
+import org.melodee.android.model.Artwork
+import org.melodee.android.model.Track
 import org.melodee.android.playback.PlaybackUiState
 
 @Composable
-fun Cover(@DrawableRes art: Int, modifier: Modifier = Modifier, description: String? = null) {
-    Image(painterResource(art), description, modifier.clip(RoundedCornerShape(18.dp)), contentScale = ContentScale.Crop)
+fun Cover(artwork: Artwork, modifier: Modifier = Modifier, description: String? = null) {
+    val clipped = modifier.clip(RoundedCornerShape(18.dp))
+    when (artwork) {
+        is Artwork.Local -> Image(painterResource(artwork.drawableRes), description, clipped, contentScale = ContentScale.Crop)
+        is Artwork.Remote -> AsyncImage(
+            model = artwork.url,
+            contentDescription = description,
+            modifier = clipped,
+            contentScale = ContentScale.Crop,
+        )
+    }
 }
+
+@Composable
+fun Cover(@DrawableRes art: Int, modifier: Modifier = Modifier, description: String? = null) =
+    Cover(Artwork.Local(art), modifier, description)
+
 @Composable
 fun PageHeader(title: String, subtitle: String? = null, onBack: (() -> Unit)? = null,
     action: @Composable (() -> Unit)? = null) {
@@ -47,6 +61,7 @@ fun PageHeader(title: String, subtitle: String? = null, onBack: (() -> Unit)? = 
         action?.invoke()
     }
 }
+
 @Composable
 fun SectionHeader(title: String, actionLabel: String? = null, action: () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -54,6 +69,7 @@ fun SectionHeader(title: String, actionLabel: String? = null, action: () -> Unit
         if (actionLabel != null) TextButton(onClick = action) { Text(actionLabel, color = Accent) }
     }
 }
+
 @Composable
 fun PlayCircle(onClick: () -> Unit, playing: Boolean = false, size: Int = 52, enabled: Boolean = true) {
     FilledIconButton(onClick, modifier = Modifier.size(size.dp), enabled = enabled,
@@ -62,12 +78,13 @@ fun PlayCircle(onClick: () -> Unit, playing: Boolean = false, size: Int = 52, en
             if (playing) "Pause" else "Play", modifier = Modifier.size((size / 2).dp))
     }
 }
+
 @Composable
-fun TrackRow(track: DemoTrack, catalog: DemoCatalog, onClick: () -> Unit,
+fun TrackRow(track: Track, onClick: () -> Unit,
     playing: Boolean = false, trailing: @Composable (() -> Unit)? = null) {
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick)
         .padding(vertical = 10.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Cover(catalog.album(track.albumId)!!.artwork, Modifier.size(54.dp))
+        Cover(track.artwork, Modifier.size(54.dp), "${track.albumTitle} artwork")
         Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
             Text(track.title, style = MaterialTheme.typography.titleMedium, color = if (playing) Accent else SoftWhite,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -79,14 +96,15 @@ fun TrackRow(track: DemoTrack, catalog: DemoCatalog, onClick: () -> Unit,
             null, tint = if (playing) Accent else Muted, modifier = Modifier.size(24.dp))
     }
 }
+
 @Composable
-fun MiniPlayer(state: PlaybackUiState, catalog: DemoCatalog, onOpen: () -> Unit, onPlay: () -> Unit, onNext: () -> Unit) {
+fun MiniPlayer(state: PlaybackUiState, onOpen: () -> Unit, onPlay: () -> Unit, onNext: () -> Unit) {
     val track = state.current ?: return
     Column(Modifier.padding(horizontal = 12.dp, vertical = 5.dp).clip(RoundedCornerShape(18.dp))
         .background(Raised).clickable(onClick = onOpen)) {
         Row(Modifier.padding(start = 10.dp, top = 9.dp, bottom = 9.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            Cover(catalog.album(track.albumId)!!.artwork, Modifier.size(44.dp))
+            Cover(track.artwork, Modifier.size(44.dp), "${track.albumTitle} artwork")
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(track.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
                 Text(track.artist, color = Muted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
@@ -102,6 +120,7 @@ fun MiniPlayer(state: PlaybackUiState, catalog: DemoCatalog, onOpen: () -> Unit,
         )
     }
 }
+
 @Composable
 fun SettingRow(icon: ImageVector, title: String, subtitle: String, onClick: (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null) {
@@ -116,8 +135,8 @@ fun SettingRow(icon: ImageVector, title: String, subtitle: String, onClick: (() 
         trailing?.invoke()
     }
 }
+
 fun formatTime(milliseconds: Long): String {
     val seconds = (milliseconds / 1_000).coerceAtLeast(0)
     return "%d:%02d".format(seconds / 60, seconds % 60)
 }
-

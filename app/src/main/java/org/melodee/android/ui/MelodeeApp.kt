@@ -29,6 +29,7 @@ fun MelodeeApp(vm: PlayerViewModel = viewModel()) {
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route ?: "home"
     val playback by vm.state.collectAsStateWithLifecycle()
+    val library by vm.library.collectAsStateWithLifecycle()
     val preferences by vm.settings.collectAsStateWithLifecycle()
     val fullPlayer = route == "player" || route == "queue"
     val snackbar = remember { SnackbarHostState() }
@@ -45,7 +46,7 @@ fun MelodeeApp(vm: PlayerViewModel = viewModel()) {
         bottomBar = {
             if (!fullPlayer) {
                 Column(Modifier.fillMaxWidth()) {
-                    MiniPlayer(playback, vm.catalog, { navigate("player") }, vm::togglePlay, vm::next)
+                    MiniPlayer(playback, { navigate("player") }, vm::togglePlay, vm::next)
                     NavigationBar(containerColor = Ink, tonalElevation = 0.dp) {
                         destinations.forEach { item ->
                             NavigationBarItem(
@@ -75,25 +76,28 @@ fun MelodeeApp(vm: PlayerViewModel = viewModel()) {
         NavHost(navController = nav, startDestination = "home",
             modifier = Modifier.fillMaxSize().padding(padding)) {
             composable("home") {
-                HomeScreen(vm, playback, { navigate("album/$it") }, { navigate("playlist/$it") },
+                HomeScreen(vm, playback, library, { navigate("album/$it") }, { navigate("playlist/$it") },
                     { navigate("settings") }, { navigate("library") })
             }
-            composable("search") { SearchScreen(vm, playback) }
+            composable("search") { SearchScreen(vm, playback, library) }
             composable("library") {
-                LibraryScreen(vm, preferences, playback, { navigate("album/$it") }, { navigate("playlist/$it") })
+                LibraryScreen(vm, preferences, playback, library,
+                    { navigate("album/$it") }, { navigate("playlist/$it") })
             }
-            composable("settings") { SettingsScreen(vm, preferences) }
+            composable("settings") {
+                SettingsScreen(vm, preferences, library, { navigate("connect") })
+            }
+            composable("connect") { ConnectionScreen(vm) { nav.popBackStack() } }
             composable("album/{id}") { entry ->
-                CollectionScreen(vm, playback, entry.arguments?.getString("id").orEmpty(), false) { nav.popBackStack() }
+                CollectionScreen(vm, playback, library, entry.arguments?.getString("id").orEmpty(), false) { nav.popBackStack() }
             }
             composable("playlist/{id}") { entry ->
-                CollectionScreen(vm, playback, entry.arguments?.getString("id").orEmpty(), true) { nav.popBackStack() }
+                CollectionScreen(vm, playback, library, entry.arguments?.getString("id").orEmpty(), true) { nav.popBackStack() }
             }
             composable("player") {
-                NowPlayingScreen(vm, playback, preferences, { nav.popBackStack() }, { navigate("queue") })
+                NowPlayingScreen(vm, playback, library.favorites.map { it.id }.toSet(), { nav.popBackStack() }, { navigate("queue") })
             }
             composable("queue") { QueueScreen(vm, playback) { nav.popBackStack() } }
         }
     }
 }
-

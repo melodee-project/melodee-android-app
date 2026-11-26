@@ -13,6 +13,8 @@ Melodee contract still requires the audit described in
 | File | Purpose |
 |---|---|
 | `openapi-v1.json` | OpenAPI 3.1.1 document for the native Melodee API (`/api/v1` plus related stream routes). |
+| `CONTRACT.md` | Implementation contract, route matrix, auth/stream semantics, known blockers and client mapping. |
+| `fixtures/` | Selected sanitised golden fixtures with provenance. |
 | `README.md` | Provenance, scope, known gaps and usage rules for this reference copy. |
 
 ## Provenance
@@ -53,6 +55,11 @@ Relevant routes for the Android client include:
 - `GET /api/v1/playlists`, `/api/v1/playlists/{id}`, `/api/v1/playlists/{id}/songs`
 - Stream URL routes, including `/song/stream/{apiKey}/{userApiKey}/{authToken}`
 - User/library state routes such as playlists, liked/recent/top-rated songs and stats
+
+The live client implementation and its deterministic test evidence are described in
+[CONTRACT.md](CONTRACT.md) and [ADR-0011](../adr/0011-live-native-api-integration.md). No
+authorised live deployment or account was supplied, so the reference is not a production
+qualification.
 
 ## Known limitations
 

@@ -14,12 +14,15 @@ import androidx.compose.ui.unit.dp
 import org.melodee.android.BuildConfig
 import org.melodee.android.R
 import org.melodee.android.data.UserSettings
+import org.melodee.android.model.CatalogMode
+import org.melodee.android.playback.LibraryUiState
 import org.melodee.android.playback.PlayerViewModel
 
 @Composable
-fun SettingsScreen(vm: PlayerViewModel, settings: UserSettings) {
+fun SettingsScreen(vm: PlayerViewModel, settings: UserSettings, library: LibraryUiState, onConnect: () -> Unit) {
     var showAuto by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
+    var confirmSignOut by remember { mutableStateOf(false) }
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { PageHeader("Settings", "Make yourself at home.") }
         item {
@@ -29,6 +32,21 @@ fun SettingsScreen(vm: PlayerViewModel, settings: UserSettings) {
                     Text("Melodee", style = MaterialTheme.typography.titleLarge)
                     Text("Your music, everywhere.", color = Muted, modifier = Modifier.padding(top = 4.dp))
                 }
+            }
+        }
+        item { SectionHeader("Your Melodee server") }
+        if (library.signedIn) {
+            item {
+                SettingRow(Icons.Rounded.CloudDone, library.accountName ?: "Connected",
+                    "Streaming from your Melodee server.", trailing = {
+                        TextButton(onClick = { confirmSignOut = true }) { Text("Sign out") }
+                    })
+            }
+        } else {
+            item {
+                SettingRow(Icons.Rounded.Cloud, "Connect to Melodee",
+                    "Sign in to stream your own library.", onConnect,
+                    trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = Muted) })
             }
         }
         item { SectionHeader("Your listening experience") }
@@ -53,8 +71,11 @@ fun SettingsScreen(vm: PlayerViewModel, settings: UserSettings) {
         item {
             Surface(color = Raised, shape = MaterialTheme.shapes.large) {
                 Column(Modifier.padding(18.dp)) {
-                    Text("You're exploring the demo library", style = MaterialTheme.typography.titleMedium)
-                    Text("Enjoy six original previews. Connecting your Melodee server is the next step for this starter.",
+                    Text(if (library.mode == CatalogMode.DEMO) "You're exploring the demo library"
+                    else "Connected to your Melodee library", style = MaterialTheme.typography.titleMedium)
+                    Text(if (library.mode == CatalogMode.DEMO)
+                        "Enjoy six original previews. Connect your Melodee server to stream your own music."
+                    else "Audio is cached temporarily for uninterrupted playback; there is no download library. Metadata stays scoped to this account.",
                         color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
                 }
             }
@@ -64,14 +85,22 @@ fun SettingsScreen(vm: PlayerViewModel, settings: UserSettings) {
         onDismissRequest = { showAuto = false },
         icon = { Icon(Icons.Rounded.DirectionsCar, null, tint = Accent) },
         title = { Text("Music for the road") },
-        text = { Text("Connect your phone to Android Auto, then select Melodee in the car's media apps. Your phone and car share one player and queue.\n\nThis starter exposes the demo albums, playlists and search. Vehicle availability and automatic resumption depend on Android Auto and your car's settings.") },
+        text = { Text("Connect your phone to Android Auto, then select Melodee in the car's media apps. Your phone and car share one player and queue.\n\nVehicle availability and automatic resumption depend on Android Auto and your car's settings. The app cannot force automatic launch.") },
         confirmButton = { TextButton(onClick = { showAuto = false }) { Text("Got it") } },
     )
     if (showAbout) AlertDialog(
         onDismissRequest = { showAbout = false },
         title = { Text("Melodee") },
-        text = { Text("A fresh start for your music.\n\nNative Android with a shared background player, original demo music and your new Melodee identity.\n\nThis build contains no sign-in credentials, telemetry or user-managed downloads.") },
+        text = { Text("A calm home for your music.\n\nNative Android with a shared background player, Android Auto discovery and account-scoped authentication. No telemetry, no user-managed downloads.") },
         confirmButton = { TextButton(onClick = { showAbout = false }) { Text("Close") } },
     )
+    if (confirmSignOut) AlertDialog(
+        onDismissRequest = { confirmSignOut = false },
+        title = { Text("Sign out of Melodee?") },
+        text = { Text("Credentials and temporary account audio will be removed. Your queue identity and position are cleared for this account.") },
+        confirmButton = {
+            TextButton(onClick = { confirmSignOut = false; vm.signOut() }) { Text("Sign out") }
+        },
+        dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } },
+    )
 }
-

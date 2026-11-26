@@ -15,17 +15,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
-import org.melodee.android.data.UserSettings
 import org.melodee.android.playback.PlaybackUiState
 import org.melodee.android.playback.PlayerViewModel
 
 @Composable
-fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, settings: UserSettings, onBack: () -> Unit, onQueue: () -> Unit) {
+fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, favoriteIds: Set<String>, onBack: () -> Unit, onQueue: () -> Unit) {
     val track = state.current
     if (track == null) {
         Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
@@ -37,7 +35,6 @@ fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, settings: User
         }
         return
     }
-    val album = vm.catalog.album(track.albumId)!!
     var scrubPosition by remember(track.id) { mutableStateOf<Float?>(null) }
     Column(Modifier.fillMaxSize().background(Brush.verticalGradient(
         listOf(Color(0xFF33213E), Ink), endY = 1500f)).verticalScroll(rememberScrollState())
@@ -45,20 +42,21 @@ fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, settings: User
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Rounded.KeyboardArrowDown, "Close player", modifier = Modifier.size(30.dp)) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("ALBUM", fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
-                Text(album.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp))
+                Text(if (track.mode == org.melodee.android.model.CatalogMode.DEMO) "DEMO ALBUM" else "ALBUM",
+                    fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
+                Text(track.albumTitle, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp))
             }
             IconButton(onClick = onQueue) { Icon(Icons.AutoMirrored.Rounded.QueueMusic, "Open queue") }
         }
         Spacer(Modifier.height(18.dp))
-        Cover(album.artwork, Modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(1f), "${album.title} album artwork")
+        Cover(track.artwork, Modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(1f), "${track.albumTitle} album artwork")
         Spacer(Modifier.height(22.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(track.title, style = MaterialTheme.typography.headlineMedium)
                 Text(track.artist, color = Muted, modifier = Modifier.padding(top = 5.dp))
             }
-            val liked = track.id in settings.favorites
+            val liked = track.id in favoriteIds
             IconButton(onClick = { vm.favorite(track.id) }) {
                 Icon(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     if (liked) "Remove from favorites" else "Add to favorites", tint = if (liked) Accent else SoftWhite)
@@ -105,7 +103,9 @@ fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, settings: User
             Spacer(Modifier.weight(1f))
             Text("${state.queue.size} tracks", color = Muted)
         }
-        Text("Original demo audio · Melodee Sessions", color = Muted, fontSize = 11.sp,
+        Text(if (track.mode == org.melodee.android.model.CatalogMode.DEMO)
+            "Original demo audio · Melodee Sessions" else "Streaming from your Melodee server",
+            color = Muted, fontSize = 11.sp,
             modifier = Modifier.padding(top = 20.dp, bottom = 12.dp), textAlign = TextAlign.Center)
     }
 }
@@ -125,7 +125,7 @@ fun QueueScreen(vm: PlayerViewModel, state: PlaybackUiState, onBack: () -> Unit)
         }
         items(state.queueOrder) { index ->
             val track = state.queue.getOrNull(index) ?: return@items
-            TrackRow(track, vm.catalog, { vm.selectQueue(index) }, playing = index == state.currentIndex,
+            TrackRow(track, { vm.selectQueue(index) }, playing = index == state.currentIndex,
                 trailing = {
                     Row {
                         if (index > 0 && !state.shuffle) {
@@ -146,4 +146,3 @@ fun QueueScreen(vm: PlayerViewModel, state: PlaybackUiState, onBack: () -> Unit)
         }
     }
 }
-

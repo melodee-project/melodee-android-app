@@ -8,7 +8,7 @@
 
 This repository is a runnable, greenfield starter for **Melodee**. Its Android application is a real native program with Compose UI, a Media3 playback service and original local demo previews. The preview catalog lets Android Studio users evaluate the product and media-session boundary without credentials or a private server. It is explicitly identified as a demo.
 
-The full production architecture below is a target specification. A Kotlin policy or coordinator with unit tests is not equivalent to an integrated, qualified streaming subsystem. Live Melodee HTTP contracts, secure credential persistence, account-scoped live queue restoration, network prefetch execution and real-car endurance must be completed in the documented implementation phases. The implementation status table is maintained in [IMPLEMENTATION.md](IMPLEMENTATION.md); measured results belong in [VALIDATION.md](VALIDATION.md).
+The full production architecture below is a target specification. A Kotlin policy or coordinator with unit tests is not equivalent to an integrated, qualified streaming subsystem. As of 2026-11-26 the native API client, Keystore-backed session storage, account-scoped catalog/queue persistence, signed stream resolution, shared audio cache, prefetch executor and live Android Auto browsing/search are implemented and tested against deterministic fixtures. Authorised live-server contract qualification, real token/IP/range faults, DHU/physical-vehicle testing and endurance remain outstanding. The implementation status table is maintained in [IMPLEMENTATION.md](IMPLEMENTATION.md); measured results belong in [VALIDATION.md](VALIDATION.md).
 
 ## 2. Build and project identity
 

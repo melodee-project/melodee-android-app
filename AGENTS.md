@@ -20,6 +20,8 @@ Use explicit constructor dependencies and cohesive packages. Keep core policy lo
 
 Build baseline: AGP 9.5.3 with AGP built-in Kotlin, Gradle 9.6.1 through the checked-in wrapper, JDK 21, Kotlin 2.4.21 and KSP 2.3.14. Compile and target API 36, minimum API 29. Do not reintroduce the `kotlin-android` plugin, legacy AGP DSL opt-outs, `kotlinOptions`, or preview toolchain versions. Record build-baseline changes in ADR-0010 or a superseding ADR.
 
+Live native API work must keep one `LiveSessionManager` for all callers, store credentials only through the Keystore-backed atomic session store, and never persist or log signed stream URLs. Use the shared `AudioCache`/`ResolvingDataSource` path for playback and prefetch, the account-scoped Room queue/metadata tables, and the one service-owned player/session. Fixture or MockWebServer evidence is not live-server or vehicle qualification; record those gaps explicitly.
+
 The UI cannot own an ExoPlayer, token renewal timer or competing queue. Stable IDs—not signed URLs—identify tracks/cache entries. Include server/account/representation/revision in cache isolation. Guard asynchronous results with account/queue generations. User pause/stop must win over automatic reconnection.
 
 Do not treat every timeout or 401 as logout. A lost refresh response after server-side rotation is ambiguous; no blind replay of consumed credentials. Audit the exact server contract before implementing recovery. No code can assert a server operation succeeded solely because a timeout occurred.
