@@ -323,6 +323,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun refresh() = reloadLibrary()
 
+    suspend fun lastServerAddress(): String? = container.session.lastServer()
+
     fun login(origin: String, userName: String, password: String, result: (org.melodee.android.live.auth.LiveLoginResult) -> Unit) {
         viewModelScope.launch { result(container.session.login(origin, userName, password)) }
     }

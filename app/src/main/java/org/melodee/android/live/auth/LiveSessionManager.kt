@@ -64,6 +64,8 @@ class LiveSessionManager(
 
     suspend fun currentAccount(): LiveAccount? = accountStore.current()
 
+    suspend fun lastServer(): String? = accountStore.lastServer()
+
     /** Validate origin and credentials before establishing a session. */
     suspend fun login(rawOrigin: String, userName: String, password: String): LiveLoginResult {
         val origin = OriginPolicy.normalize(rawOrigin, allowInsecureLoopback).getOrElse {
@@ -108,6 +110,7 @@ class LiveSessionManager(
             ),
         )
         accountStore.save(next)
+        accountStore.saveLastServer(next.serverId)
         return LiveLoginResult.Success(next)
     }
 
@@ -117,6 +120,7 @@ class LiveSessionManager(
             OriginPolicy.normalize(it.serverId, allowInsecureLoopback).getOrNull()
         }
         val pair = coordinator.logout()
+        previousAccount?.let { accountStore.saveLastServer(it.serverId) }
         accountStore.clear()
         withContext(NonCancellable) { runCatching { onSessionCleared() } }
         if (origin != null && pair != null) {

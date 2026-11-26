@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -18,13 +19,21 @@ import org.melodee.android.playback.PlayerViewModel
 
 @Composable
 fun ConnectionScreen(vm: PlayerViewModel, onBack: (() -> Unit)? = null) {
-    var origin by remember { mutableStateOf("") }
+    var origin by rememberSaveable { mutableStateOf("") }
+    var prefillAttempted by rememberSaveable { mutableStateOf(false) }
     var userName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var success by remember { mutableStateOf(false) }
     var showGooglePlaceholder by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!prefillAttempted) {
+            val saved = vm.lastServerAddress()
+            if (origin.isBlank() && !saved.isNullOrBlank()) origin = saved
+            prefillAttempted = true
+        }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
         PageHeader("Sign in to Melodee", "Use your Melodee server account.", onBack)
         Text("Melodee connects directly to your server. Use an HTTPS origin; the app never stores your password.",

@@ -26,6 +26,8 @@ interface AccountMetadataStore {
     suspend fun save(metadata: LiveAccount)
     suspend fun clear()
     suspend fun deviceId(): String
+    suspend fun lastServer(): String?
+    suspend fun saveLastServer(serverId: String)
 }
 
 /**
@@ -37,6 +39,7 @@ class LiveAccountStore(private val context: Context) : AccountMetadataStore {
     private val account = stringPreferencesKey("account_id")
     private val username = stringPreferencesKey("username")
     private val deviceId = stringPreferencesKey("device_id")
+    private val lastServer = stringPreferencesKey("last_server")
 
     override val accountFlow: Flow<LiveAccount?> = context.liveAccountDataStore.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
@@ -49,6 +52,15 @@ class LiveAccountStore(private val context: Context) : AccountMetadataStore {
         }
 
     override suspend fun current(): LiveAccount? = accountFlow.first()
+
+    override suspend fun lastServer(): String? = context.liveAccountDataStore.data
+        .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
+        .first()
+        .let { values -> values[lastServer]?.takeIf(String::isNotBlank) ?: values[server] }
+
+    override suspend fun saveLastServer(serverId: String) {
+        context.liveAccountDataStore.edit { values -> values[lastServer] = serverId }
+    }
 
     override suspend fun save(metadata: LiveAccount) {
         context.liveAccountDataStore.edit { values ->

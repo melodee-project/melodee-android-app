@@ -32,6 +32,8 @@ Android app validation with the authorised temporary test account:
   the service and stayed PLAYING with the foreground media notification after Home/background.
 - Album/artist like routes: authenticated star/unstar returned 200 for the first album and
   artist; both were returned to the unliked state.
+- Last server prefill: after signing out of the production account and force-stopping/relaunching
+  the app, the sign-in server field contained https://music.shildreth.com.
 - Album like UI: on the live album detail, the heart changed to the filled “Unlike album” state
   through the production API, then was toggled back to unliked.
 - Ratings: production setrating returned 200 for album, artist and song at 5 and at clear 0.

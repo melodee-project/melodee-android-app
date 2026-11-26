@@ -91,6 +91,17 @@ class LiveSessionManagerTest {
         assertTrue(cleared >= 1)
     }
 
+    @Test fun `last successful server is remembered across logout`() = runTest {
+        server.enqueue(authResponse())
+        val manager = manager(this)
+        manager.login(server.url("/").toString(), "alice", "secret")
+        val remembered = accounts.lastServerValue
+        assertTrue(remembered != null && remembered.startsWith("http://localhost"))
+        server.enqueue(MockResponse().setResponseCode(200))
+        manager.logout()
+        assertEquals(remembered, accounts.lastServerValue)
+    }
+
     @Test fun `account switch clears old account state`() = runTest {
         server.enqueue(authResponse())
         val manager = manager(this)
@@ -125,6 +136,9 @@ class LiveSessionManagerTest {
         override suspend fun current(): LiveAccount? = state.value
         override suspend fun save(metadata: LiveAccount) { state.value = metadata }
         override suspend fun clear() { state.value = null }
+        var lastServerValue: String? = null
         override suspend fun deviceId(): String = "device-1"
+        override suspend fun lastServer(): String? = lastServerValue ?: state.value?.serverId
+        override suspend fun saveLastServer(serverId: String) { lastServerValue = serverId }
     }
 }

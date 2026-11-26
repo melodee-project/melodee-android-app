@@ -181,5 +181,7 @@ class LiveMusicCatalogTest {
         override suspend fun save(metadata: LiveAccount) { value.value = metadata }
         override suspend fun clear() { value.value = null }
         override suspend fun deviceId() = "device-1"
+        override suspend fun lastServer(): String? = value.value?.serverId
+        override suspend fun saveLastServer(serverId: String) = Unit
     }
 }

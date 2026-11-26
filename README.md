@@ -37,12 +37,12 @@ On Windows, use `gradlew.bat` in place of `./gradlew`. The debug APK is generate
 
 | Area | Included |
 |---|---|
-| Phone experience | Home, Search, Library, Settings, artist/album/playlist details, Now Playing, queue, live sign-in, like/unlike hearts and 1–5 star ratings for tracks, albums and artists |
+| Phone experience | Home, Search, Library, Settings, artist/album/playlist details, Now Playing, queue, live sign-in with the last successful server remembered, like/unlike hearts and 1–5 star ratings for tracks, albums and artists |
 | Audio | One service-owned ExoPlayer, shared MediaLibrarySession, live signed streaming, bounded temporary playback buffer and queue/position/shuffle restoration |
 | Authentication | Keystore-backed AES-GCM session record, proactive/single-flight renewal, rotation-ambiguity handling and account cleanup |
 | Android Auto | Live MediaLibraryService hierarchy (`Home`, `Library`, `Playlists`, `Favorites`), search, album expansion and one shared queue; DHU/vehicle qualification pending |
 | Core logic | Context-aware prefetch planner/executor, stable cache identity and coordinated token renewal with tests |
-| Preferences | DataStore-backed playback preferences, account metadata and live favorites |
+| Preferences | DataStore-backed playback preferences, account metadata, last successful server origin and live favorites |
 | Product documentation | PRD, SPEC, phased IMPLEMENTATION plan, thirteen ADRs, UX/design rules, captured API contract/fixtures and coding-agent instructions |
 | Design references | Exact supplied logo and selected concept image, with superseded mockup text documented |
 | Build | Gradle wrapper, version catalog and reproducible native project structure |

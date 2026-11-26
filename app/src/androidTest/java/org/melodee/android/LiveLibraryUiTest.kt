@@ -42,5 +42,11 @@ class LiveLibraryUiTest {
         }
         compose.onNodeWithText("Northern Lights").assertExists()
         compose.onNodeWithText("Melodee").assertExists()
+
+        runBlocking { app.container.session.logout() }
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Sign in to Melodee").fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue(compose.onAllNodesWithText(server.url.trimEnd('/')).fetchSemanticsNodes().isNotEmpty())
     }
 }
