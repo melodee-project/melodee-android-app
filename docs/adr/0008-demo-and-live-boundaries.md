@@ -1,7 +1,7 @@
 # ADR-0008 — Runnable demo with explicit production boundaries
 
 - **Date:** 2026-11-26
-- **Status:** Accepted starter delivery
+- **Status:** Superseded by [ADR-0013](0013-authenticated-only-startup.md); retained as historical starter decision
 
 ## Context
 

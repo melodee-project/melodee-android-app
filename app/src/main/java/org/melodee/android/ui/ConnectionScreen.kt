@@ -17,7 +17,7 @@ import org.melodee.android.live.auth.LiveLoginResult
 import org.melodee.android.playback.PlayerViewModel
 
 @Composable
-fun ConnectionScreen(vm: PlayerViewModel, onBack: () -> Unit) {
+fun ConnectionScreen(vm: PlayerViewModel, onBack: (() -> Unit)? = null) {
     var origin by remember { mutableStateOf("") }
     var userName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -26,7 +26,7 @@ fun ConnectionScreen(vm: PlayerViewModel, onBack: () -> Unit) {
     var success by remember { mutableStateOf(false) }
     var showGooglePlaceholder by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
-        PageHeader("Connect", "Use your Melodee server account.", onBack)
+        PageHeader("Sign in to Melodee", "Use your Melodee server account.", onBack)
         Text("Melodee connects directly to your server. Use an HTTPS origin; the app never stores your password.",
             color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
         OutlinedTextField(
@@ -57,7 +57,7 @@ fun ConnectionScreen(vm: PlayerViewModel, onBack: () -> Unit) {
         }
         if (success) {
             Surface(color = Raised, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                Text("Signed in. Your Melodee library will load now.", color = SoftWhite,
+                Text("Signed in. Connected to your Melodee server. Your catalog is ready to browse.", color = SoftWhite,
                     modifier = Modifier.padding(14.dp))
             }
         }
@@ -80,7 +80,7 @@ fun ConnectionScreen(vm: PlayerViewModel, onBack: () -> Unit) {
             if (busy) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Ink, strokeWidth = 2.dp)
             else Icon(Icons.AutoMirrored.Rounded.Login, null)
             Spacer(Modifier.width(10.dp))
-            Text(if (busy) "Connecting…" else "Connect")
+            Text(if (busy) "Signing in…" else "Connect")
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 18.dp), color = Raised)
         OutlinedButton(
@@ -95,8 +95,10 @@ fun ConnectionScreen(vm: PlayerViewModel, onBack: () -> Unit) {
         Text("Google sign-in is being set up. Use your Melodee username and password for now.",
             color = Muted, style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(top = 8.dp))
-        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), enabled = !busy) {
-            Text("Not now")
+        if (onBack != null) {
+            TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), enabled = !busy) {
+                Text("Not now")
+            }
         }
         Spacer(Modifier.height(24.dp))
         Text("Why HTTPS? Melodee sends credentials and signed stream URLs. Cleartext is accepted only for debug loopback builds.",

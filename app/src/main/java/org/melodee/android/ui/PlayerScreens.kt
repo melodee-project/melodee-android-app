@@ -42,8 +42,7 @@ fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, favoriteIds: S
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Rounded.KeyboardArrowDown, "Close player", modifier = Modifier.size(30.dp)) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (track.mode == org.melodee.android.model.CatalogMode.DEMO) "DEMO ALBUM" else "ALBUM",
-                    fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
+                Text("ALBUM", fontSize = 9.sp, letterSpacing = 2.sp, color = Muted)
                 Text(track.albumTitle, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp))
             }
             IconButton(onClick = onQueue) { Icon(Icons.AutoMirrored.Rounded.QueueMusic, "Open queue") }
@@ -103,8 +102,7 @@ fun NowPlayingScreen(vm: PlayerViewModel, state: PlaybackUiState, favoriteIds: S
             Spacer(Modifier.weight(1f))
             Text("${state.queue.size} tracks", color = Muted)
         }
-        Text(if (track.mode == org.melodee.android.model.CatalogMode.DEMO)
-            "Original demo audio · Melodee Sessions" else "Streaming from your Melodee server",
+        Text("Streaming from your Melodee server",
             color = Muted, fontSize = 11.sp,
             modifier = Modifier.padding(top = 20.dp, bottom = 12.dp), textAlign = TextAlign.Center)
     }

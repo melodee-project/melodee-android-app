@@ -4,9 +4,11 @@
 
 **A greenfield native Android music application with Android Auto built into its architecture.**
 
-The installed app is named **Melodee** and uses the supplied Melodee logo. It implements the selected dark, artwork-led visual direction with one service-owned Media3 player, Android Auto, live native API integration, secure session storage and a bounded temporary streaming cache. It still opens in Android Studio at the repository root and runs without a Melodee account by using the bundled demo library.
+The installed app is named **Melodee** and uses the supplied Melodee logo. It implements the selected dark, artwork-led visual direction with one service-owned Media3 player, Android Auto, live native API integration, secure session storage and a bounded temporary streaming cache.
 
-> **Status:** Live native API login, catalog, search, playlists, signed streaming, account-scoped queue persistence and bounded prefetch are implemented and tested against deterministic fixtures. They have **not** been qualified against an authorised live Melodee deployment, DHU or a physical vehicle. The demo library remains a real offline-runnable fixture, not a download feature. See [VALIDATION.md](VALIDATION.md) for exact evidence and open gaps.
+> **Authentication is mandatory.** The app has no offline catalog or in-app demo library. On launch it checks for a saved session and otherwise presents the Melodee sign-in screen. Once authenticated, every browsing screen uses the connected server's catalog; if the server has no content, the app shows an empty state rather than mock data.
+>
+> **Status:** Username/password authentication, live catalog/search/playlists, signed streaming, account-scoped queue persistence, bounded prefetch and physical-device playback are implemented and verified against the supplied production instance. Android Auto DHU/vehicle testing, refresh-rotation fault injection, dead-zone endurance and release signing remain outstanding. See [VALIDATION.md](VALIDATION.md).
 
 ## Open and run in Android Studio
 
@@ -15,10 +17,10 @@ The installed app is named **Melodee** and uses the supplied Melodee logo. It im
 3. Install **Android SDK Platform 36** and Build Tools **36.0.0**. Let Gradle sync download the pinned dependencies; the first sync requires internet access to the standard Android/Maven/Gradle repositories.
 4. In Device Manager, create a phone emulator running **API 29 or newer**; API 36 is the recommended first test.
 5. Select the **app** run configuration/module and press **Run**.
-6. In **Melodee**, choose a demo album or track and press Play. Test the mini-player, Now Playing, queue, Search and Library. Playback uses real Media3 audio, not an animated mock player.
-7. To use your own server, open **Settings → Connect to Melodee**, enter its HTTPS origin and sign in with your Melodee username and password. The app then renders live albums, artists, songs, playlists and favorites; the demo remains available after sign-out. Never commit real server credentials. A **Continue with Google** placeholder is visible while Google OAuth/server setup is pending; it explains the status and does not fake a sign-in.
+6. On first launch, **Melodee** presents its required sign-in screen. Enter your server's HTTPS origin, username and password, then connect. The app renders the live catalog; there is no demo/offline fallback. Large libraries are browsed with server-side pages (50/100 items) and explicit “Show more” controls rather than fetching the whole catalog. Never commit real server credentials. A **Continue with Google** placeholder is visible while Google OAuth/server setup is pending; it explains the status and does not fake a sign-in.
+7. After sign-in, test the mini-player, Now Playing, queue, Search, Library, artists and albums. Playback uses real Media3 audio from the server, not an animated mock player. The app has no user-managed download or offline-library feature.
 
-Android Studio normally creates the machine-specific `local.properties` SDK path. That file must remain untracked. No Firebase project, signing key, private server or password is needed for the demo.
+Android Studio normally creates the machine-specific `local.properties` SDK path. That file must remain untracked. No Firebase project or signing key is needed; a Melodee account and server are required.
 
 ### Command-line build
 
@@ -36,24 +38,16 @@ On Windows, use `gradlew.bat` in place of `./gradlew`. The debug APK is generate
 | Area | Included |
 |---|---|
 | Phone experience | Home, Search, Library, Settings, album/playlist details, Now Playing, queue and a live server connection flow |
-| Audio | One service-owned ExoPlayer, shared MediaLibrarySession, live signed streaming, bounded temporary cache, original previews and queue/position/shuffle restoration |
+| Audio | One service-owned ExoPlayer, shared MediaLibrarySession, live signed streaming, bounded temporary playback buffer and queue/position/shuffle restoration |
 | Authentication | Keystore-backed AES-GCM session record, proactive/single-flight renewal, rotation-ambiguity handling and account cleanup |
 | Android Auto | Live MediaLibraryService hierarchy (`Home`, `Library`, `Playlists`, `Favorites`), search, album expansion and one shared queue; DHU/vehicle qualification pending |
 | Core logic | Context-aware prefetch planner/executor, stable cache identity and coordinated token renewal with tests |
-| Preferences | DataStore-backed playback preferences, account metadata and demo favorites |
-| Product documentation | PRD, SPEC, phased IMPLEMENTATION plan, twelve ADRs, UX/design rules, captured API contract/fixtures and coding-agent instructions |
+| Preferences | DataStore-backed playback preferences, account metadata and live favorites |
+| Product documentation | PRD, SPEC, phased IMPLEMENTATION plan, thirteen ADRs, UX/design rules, captured API contract/fixtures and coding-agent instructions |
 | Design references | Exact supplied logo and selected concept image, with superseded mockup text documented |
 | Build | Gradle wrapper, version catalog and reproducible native project structure |
 
-The demo media is a development fixture. The application has no user-managed download feature or offline library. The streaming cache remains temporary, bounded and account-scoped; it is not a browserable offline collection.
-
-### Actual starter screens
-
-These are screenshots of the running Android application, separate from the concept reference.
-
-| Home | Now Playing | Settings |
-|---|---|---|
-| <img src="design/screenshots/home.png" alt="Melodee Home screen" width="220"> | <img src="design/screenshots/now-playing.png" alt="Melodee Now Playing screen" width="220"> | <img src="design/screenshots/settings.png" alt="Melodee Settings screen" width="220"> |
+The application has no user-managed download feature or offline library. The streaming cache is temporary, bounded and account-scoped; it is not a browserable offline collection. Bundled audio remains an automated-test fixture and is never presented as an app library.
 
 ## Product foundations
 
@@ -66,7 +60,7 @@ The phone, car and Android system controls operate one service-owned player and 
 ## Repository map
 
 ```text
-app/                  Android application, Compose UI, Media3 service and demo catalog
+app/                  Android application, Compose UI, Media3 service and live catalog adapters
 core/                 Pure Kotlin prefetch/auth foundations and tests
 gradle/               Wrapper and pinned dependency catalog
 design/branding/      Supplied Melodee logo
@@ -76,7 +70,7 @@ docs/api/             OpenAPI reference, implementation contract, provenance and
 docs/design/          Design system and screen behavior
 PRD.md                Product requirements and acceptance scenarios
 SPEC.md               Technical architecture and contracts
-IMPLEMENTATION.md     Starter boundary and phased delivery plan
+IMPLEMENTATION.md     Authenticated implementation status and phased delivery plan
 CODING_AGENT_PROMPT.md Instructions for the next coordinated implementation
 AGENTS.md             Repository collaboration rules
 VALIDATION.md         Actual checks, evidence and remaining validation
@@ -84,22 +78,22 @@ VALIDATION.md         Actual checks, evidence and remaining validation
 
 ### Important source entry points
 
-- `app/src/main/java/org/melodee/android/playback/PlaybackService.kt` — sole player/session owner, demo/live browse/search callbacks and queue restoration.
+- `app/src/main/java/org/melodee/android/playback/PlaybackService.kt` — sole player/session owner, live browse/search callbacks and queue restoration.
 - `app/src/main/java/org/melodee/android/playback/PlayerViewModel.kt` — phone MediaController, library state and search/detail loading.
 - `app/src/main/java/org/melodee/android/catalog/LiveMusicCatalog.kt` — authenticated catalog and Android Auto hierarchy.
 - `app/src/main/java/org/melodee/android/live/auth/LiveSessionManager.kt` — shared account/session boundary.
 - `app/src/main/java/org/melodee/android/live/auth/KeystoreSessionStore.kt` — encrypted atomic credential record.
 - `app/src/main/java/org/melodee/android/live/cache/AudioCache.kt` — bounded cache and fresh signed-URL resolution.
 - `app/src/main/java/org/melodee/android/live/prefetch/PrefetchExecutor.kt` — bounded prefetch execution.
-- `app/src/main/java/org/melodee/android/data/PlaybackDatabase.kt` — demo bookmark plus account-scoped metadata/queue tables.
+- `app/src/main/java/org/melodee/android/data/PlaybackDatabase.kt` — account-scoped metadata/queue tables and legacy migration.
 - `core/src/main/kotlin/org/melodee/core/cache/PrefetchPlanner.kt` — pure cache policy, not network execution.
 - `core/src/main/kotlin/org/melodee/core/auth/SessionCoordinator.kt` — shared renewal and uncertainty model.
 
-Six original 32-second Ogg previews let you test actual transitions. They are intentionally short fixtures, not a demonstration that a full remote album is cached.
+The bundled 32-second Ogg previews are used by automated transport/service tests. They are not an in-app music library and are not shown to signed-in users.
 
 ## Android Auto development
 
-The app uses a media-library service, so Android Auto consumes browsable/playable content and the same media session as the phone. The demo roots are Home, Albums and Playlists; the live roots are Home, Library, Playlists and Favorites. The car mockup is a conceptual reference, not a custom Compose screen projected into a vehicle.
+The app uses a media-library service, so Android Auto consumes browsable/playable content and the same media session as the phone. The live roots are Home, Library, Playlists and Favorites. The car mockup is a conceptual reference, not a custom Compose screen projected into a vehicle.
 
 After phone playback is verified, follow Google's [Desktop Head Unit setup](https://developer.android.com/training/cars/testing/dhu) with a supported Android Auto test environment. Debug/sideload discovery can require Android Auto developer configuration. Validate browse, playback, service cold start, queue, search, focus and background auth on supported real hardware before release. A phone emulator run alone is not Android Auto qualification.
 
@@ -126,7 +120,7 @@ Kotlin • Compose/Material 3 • Navigation Compose • Media3 • OkHttp • k
 
 The build baseline is AGP 9.5.3 with AGP built-in Kotlin, Gradle 9.6.1, Kotlin 2.4.21, KSP 2.3.14, JDK 21 and compile/target SDK 36. The build scripts use Gradle Kotlin DSL and the public `android` DSL without legacy compatibility opt-outs. See [ADR-0010](docs/adr/0010-modern-build-toolchain.md).
 
-`org.melodee.android` is the starter application ID; confirm namespace ownership and distribution policy before publication. Minimum API 29 is a starter decision recorded in [ADR-0007](docs/adr/0007-build-and-compatibility.md) and retained by ADR-0010.
+`org.melodee.android` is the application ID; confirm namespace ownership and distribution policy before publication. Minimum API 29 is a starter decision recorded in [ADR-0007](docs/adr/0007-build-and-compatibility.md) and retained by ADR-0010.
 
 The default build uses a 2 GiB Gradle heap, two workers and in-process Kotlin compilation
 to keep Android Studio and an emulator usable alongside it. Override these locally

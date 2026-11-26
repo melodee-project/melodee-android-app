@@ -6,7 +6,7 @@
 
 ## 1. Delivery boundary
 
-This repository is a runnable, greenfield starter for **Melodee**. Its Android application is a real native program with Compose UI, a Media3 playback service and original local demo previews. The preview catalog lets Android Studio users evaluate the product and media-session boundary without credentials or a private server. It is explicitly identified as a demo.
+This repository is an authenticated native Android client for **Melodee**. Its Android application has a Compose UI, a Media3 playback service, a live native API catalog and a mandatory sign-in gate. Bundled audio previews are automated-test fixtures only; the app never presents a demo/offline library to a signed-in user.
 
 The full production architecture below is a target specification. A Kotlin policy or coordinator with unit tests is not equivalent to an integrated, qualified streaming subsystem. As of 2026-11-26 the native API client, Keystore-backed session storage, account-scoped catalog/queue persistence, signed stream resolution, shared audio cache, prefetch executor and live Android Auto browsing/search are implemented and tested against deterministic fixtures. Authorised live-server contract qualification, real token/IP/range faults, DHU/physical-vehicle testing and endurance remain outstanding. The implementation status table is maintained in [IMPLEMENTATION.md](IMPLEMENTATION.md); measured results belong in [VALIDATION.md](VALIDATION.md).
 
@@ -30,7 +30,7 @@ These are a deliberately pinned, coherent compatibility baseline, **not a claim 
 
 ### Modules
 
-- `:app`: Android application, phone UI, Android Media3 adapters, service and catalog/demo integration.
+- `:app`: Android application, phone UI, Android Media3 adapters, service and live catalog integration.
 - `:core`: Android-independent Kotlin policies/contracts for prefetch and authentication. Keep transport, UI, Android context and credentials out of pure decision logic.
 
 Start with these two modules. Add modules only for a demonstrable ownership, build-isolation or reusable boundary. Feature packages do not require separate Gradle modules. Constructors declare dependencies; one application container owns long-lived service objects.
@@ -55,15 +55,15 @@ flowchart TD
 
 Only the service owns the player. The phone uses a MediaController; it does not construct another ExoPlayer or maintain a separate authoritative queue. Android Auto speaks to the same session and catalog. Media3 provides the service/session bridge; it does not make app-specific authentication, queue persistence or cache policy automatic.
 
-The diagram describes production responsibilities, not a mandate for one class per box. The starter's demo repository and resource resolver implement only the local-media path.
+The diagram describes production responsibilities, not a mandate for one class per box. The live catalog repository, cache-aware resolver and authenticated session boundary implement the current media path.
 
 ## 4. Phone application and visual system
 
-Use Jetpack Compose with Material 3 primitives and a custom theme. The starter renders local vector artwork directly; Coil remains available for the future network-artwork adapter and does not supply a live image pipeline yet. Follow [UX-SPEC.md](docs/design/UX-SPEC.md) and [DESIGN-SYSTEM.md](docs/design/DESIGN-SYSTEM.md). Primary navigation remains Home / Search / Library / Settings. Mini-player state is derived from the controller. Now Playing and Queue share the same transport state.
+Use Jetpack Compose with Material 3 primitives and a custom theme. The app renders local adaptive/branding artwork and remote server artwork through Coil. Follow [UX-SPEC.md](docs/design/UX-SPEC.md) and [DESIGN-SYSTEM.md](docs/design/DESIGN-SYSTEM.md). Primary navigation remains Home / Search / Library / Settings. Mini-player state is derived from the controller. Now Playing and Queue share the same transport state.
 
-The supplied circular logo is the brand source of truth. Preserve its colors and proportions. Android adaptive-icon layers may provide safe-area padding and a background; do not redraw the mark or replace it with a generated approximation. The installed label has no Beta, Player, Android or StreamBeat suffix. In-app demo disclosure communicates the starter's status.
+The supplied circular logo is the brand source of truth. Preserve its colors and proportions. Android adaptive-icon layers may provide safe-area padding and a background; do not redraw the mark or replace it with a generated approximation. The installed label has no Beta, Player, Android or StreamBeat suffix. The app requires authentication and does not display an in-app demo catalog.
 
-The starter persists preferences and demo favorites through DataStore; extend this typed settings boundary for live playback policy. Save transient navigation state with platform-supported state mechanisms. A screen may use view models for its presentation state, but must not own an authentication refresh timer or player lifecycle.
+The app persists preferences and account favorites through DataStore. Save transient navigation state with platform-supported state mechanisms. A screen may use view models for its presentation state, but must not own an authentication refresh timer or player lifecycle.
 
 ## 5. Domain identities and queue
 
@@ -104,7 +104,7 @@ Do not add Media3 DownloadManager/DownloadService or an offline collection schem
 
 Inputs: queue generation and context, actual ordered entries, current index/position, durations and estimated sizes when known, existing cached ranges/completeness, byte budget, network/data policy and active-buffer health.
 
-Outputs: an ordered fetch plan and retention priorities. Pure planning logic performs no network I/O, changes no credentials and claims no completed fetch. The starter provides `org.melodee.core.cache.PrefetchPlanner` as this boundary.
+Outputs: an ordered fetch plan and retention priorities. Pure planning logic performs no network I/O, changes no credentials and claims no completed fetch. The `:core` module provides `org.melodee.core.cache.PrefetchPlanner` as this boundary.
 
 | Context | Policy |
 |---|---|
@@ -132,7 +132,7 @@ Temporary loss of connectivity permits continued use of authorized cached media 
 
 ### One coordinator
 
-Every authenticated API caller uses the same session coordinator, including live catalog queries, prefetch, playback source resolution and listening-event submission. The pure core starter exposes `SessionCoordinator`, a token-generation/account-epoch model and a durable refresh-attempt store contract; secure store and HTTP adapters are integration work.
+Every authenticated API caller uses the same session coordinator, including live catalog queries, prefetch, playback source resolution and listening-event submission. The `:core` module exposes `SessionCoordinator`, a token-generation/account-epoch model and a durable refresh-attempt store contract; the `:app` module supplies the Keystore store and HTTP adapter.
 
 Token state includes an account/session generation, access token, refresh token and trusted expiry information. Use server-provided expiry or validated JWT timing with clock-skew allowance; do not hard-code a 15-minute lifetime into scheduling. Refresh with a configurable margin before useful authenticated work and while active playback/prefetch needs continued authorization. Use an elapsed clock for retry intervals and conservative wall-clock handling for absolute expiry.
 
@@ -164,7 +164,7 @@ Strict refresh rotation creates a distributed transaction: a server may commit r
 
 ### Secure storage
 
-Use Android Keystore-protected encryption for credentials in app-private storage. Keystore holds cryptographic keys, not arbitrary token records. Replace the credential pair atomically; define what happens when a key becomes inaccessible or a restore lacks the original key. Exclude credentials/audio from backup where appropriate. Never retain the account password or log tokens, Authorization headers or signed URLs. A development demo must never pretend to securely store real credentials.
+Use Android Keystore-protected encryption for credentials in app-private storage. Keystore holds cryptographic keys, not arbitrary token records. Replace the credential pair atomically; define what happens when a key becomes inaccessible or a restore lacks the original key. Exclude credentials/audio from backup where appropriate. Never retain the account password or log tokens, Authorization headers or signed URLs. A demo fixture must never be used to imply that real credentials are securely stored.
 
 ### Signed media URLs
 
@@ -174,7 +174,9 @@ Fully cached playback must read cache before requiring live URL renewal, under t
 
 ## 8. Melodee API integration contract
 
-Use the native API. Do not infer an OAuth/OIDC flow, HLS endpoint or server queue feature merely because another client library supports it. Audit the exact target server revision and record sanitized request/response fixtures for:
+Use the native API. Large Melodee libraries may contain tens of thousands of releases and tens of millions of tracks; never fetch the full library. Browse with bounded server `page`/`pageSize` requests (the client currently uses 50 for albums/artists/playlists/favorites and 100 for tracks/playlist windows), expose incremental “Show more” controls, and keep search paged per content type. Queue construction must use a bounded initial window and load further pages on demand rather than materializing a huge playlist.
+
+Do not infer an OAuth/OIDC flow, HLS endpoint or server queue feature merely because another client library supports it. Audit the exact target server revision and record sanitized request/response fixtures for:
 
 - Server discovery/version and base URL behavior.
 - Login, refresh rotation, logout/revocation, expiry, clock skew and error classification.
@@ -193,7 +195,7 @@ Direct progressive streaming is the initial path. Evaluate original formats and 
 
 Media3 `MediaLibraryService` exposes browsable/playable nodes and one session. Android Auto renders its host experience; phone Compose screens are not projected to the head unit. Brand colors/artwork and content hierarchy can influence presentation within host rules. Treat car mockups as UX references, not pixel-perfect custom-layout commitments.
 
-The starter demo exposes Home, Albums and Playlists. Target production root categories are Home, Library, Playlists and Favorites. Bound each level using host hints and grouping. Server pagination remains useful internally, but Android Auto/AAOS browsing does not support relying on `page`/`pageSize` for incremental display. Alphabetical groups and meaningful shortcuts prevent enormous responses. Search supports catalog matching and deterministic playable resolution.
+The authenticated Android Auto hierarchy exposes Home, Library, Playlists and Favorites. Bound each level using host hints and grouping. Server pagination remains useful internally, but Android Auto/AAOS browsing does not support relying on `page`/`pageSize` for incremental display. Alphabetical groups and meaningful shortcuts prevent enormous responses. Search supports catalog matching and deterministic playable resolution.
 
 Media3 search callbacks and request metadata handle search-to-play requests. Do not implement legacy `onPlayFromSearch` as if it were a `MediaLibraryService` callback. Unknown IDs return an appropriate library error; arbitrary external URIs must not be played simply because an untrusted controller submitted them.
 
@@ -203,7 +205,7 @@ Production qualification includes DHU, real phones, wired/wireless connections, 
 
 ## 10. Data, lifecycle and diagnostics
 
-The starter uses Room for demo queue bookmarks, position, repeat and persisted shuffle traversal, and DataStore for preferences/favorites. Extend Room with account-scoped live queue snapshots, catalog metadata, recent items and a bounded retry outbox where appropriate. A single in-memory object is not durable persistence. WorkManager is for deferrable synchronization/cleanup; do not depend on periodic jobs for a three-minute token-renewal deadline or active playback continuity.
+The app uses Room for account-scoped queue snapshots, catalog metadata and legacy migration, and DataStore for preferences/account metadata. A bounded retry outbox remains appropriate for listening events. A single in-memory object is not durable persistence. WorkManager is for deferrable synchronization/cleanup; do not depend on periodic jobs for a three-minute token-renewal deadline or active playback continuity.
 
 Register `ConnectivityManager` callbacks for state changes but treat connectivity reports as hints: a network can be present while the server is unreachable. Measure request results and buffer health. Do not equate a signal-strength icon with guaranteed throughput.
 

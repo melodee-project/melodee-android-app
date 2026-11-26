@@ -55,7 +55,7 @@ object LiveMediaItems {
             durationMs = extras?.getLong(KEY_DURATION, 0L) ?: 0L,
             bitrateKbps = extras?.getInt(KEY_BITRATE, 0) ?: 0,
             artwork = metadata.artworkUri?.let { Artwork.Remote(it.toString()) }
-                ?: Artwork.Local(R.drawable.art_afterglow),
+                ?: Artwork.Local(R.drawable.art_placeholder),
             mode = CatalogMode.LIVE,
             revision = extras?.getString(KEY_REVISION).orEmpty().ifBlank { "unknown" },
             updatedAt = extras?.getString(KEY_UPDATED).orEmpty(),

@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import org.melodee.android.BuildConfig
 import org.melodee.android.R
 import org.melodee.android.data.UserSettings
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.playback.LibraryUiState
 import org.melodee.android.playback.PlayerViewModel
 
@@ -71,11 +70,8 @@ fun SettingsScreen(vm: PlayerViewModel, settings: UserSettings, library: Library
         item {
             Surface(color = Raised, shape = MaterialTheme.shapes.large) {
                 Column(Modifier.padding(18.dp)) {
-                    Text(if (library.mode == CatalogMode.DEMO) "You're exploring the demo library"
-                    else "Connected to your Melodee library", style = MaterialTheme.typography.titleMedium)
-                    Text(if (library.mode == CatalogMode.DEMO)
-                        "Enjoy six original previews. Connect your Melodee server to stream your own music."
-                    else "Audio is cached temporarily for uninterrupted playback; there is no download library. Metadata stays scoped to this account.",
+                    Text("Connected to your Melodee library", style = MaterialTheme.typography.titleMedium)
+                    Text("Music streams from your Melodee server. A temporary playback buffer may remain for uninterrupted playback; there is no download library.",
                         color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
                 }
             }

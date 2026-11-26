@@ -46,8 +46,9 @@ data class PlaybackUiState(
 )
 
 data class LibraryUiState(
-    val mode: CatalogMode = CatalogMode.DEMO,
+    val mode: CatalogMode = CatalogMode.LIVE,
     val loading: Boolean = true,
+    val authChecked: Boolean = false,
     val signedIn: Boolean = false,
     val accountName: String? = null,
     val home: HomeFeed = HomeFeed(),
@@ -56,6 +57,21 @@ data class LibraryUiState(
     val playlists: List<Playlist> = emptyList(),
     val tracks: List<Track> = emptyList(),
     val favorites: List<Track> = emptyList(),
+    val albumPage: Int = 1,
+    val artistPage: Int = 1,
+    val playlistPage: Int = 1,
+    val trackPage: Int = 1,
+    val favoritePage: Int = 1,
+    val hasMoreAlbums: Boolean = false,
+    val hasMoreArtists: Boolean = false,
+    val hasMorePlaylists: Boolean = false,
+    val hasMoreTracks: Boolean = false,
+    val hasMoreFavorites: Boolean = false,
+    val loadingMoreAlbums: Boolean = false,
+    val loadingMoreArtists: Boolean = false,
+    val loadingMorePlaylists: Boolean = false,
+    val loadingMoreTracks: Boolean = false,
+    val loadingMoreFavorites: Boolean = false,
     val selectedAlbum: Album? = null,
     val selectedPlaylist: Playlist? = null,
     val selectedArtist: Artist? = null,
@@ -64,16 +80,38 @@ data class LibraryUiState(
     val artistTracks: List<Track> = emptyList(),
     val selectionLoading: Boolean = false,
     val selectionError: String? = null,
+    val playlistTrackPage: Int = 1,
+    val hasMorePlaylistTracks: Boolean = false,
+    val loadingMorePlaylistTracks: Boolean = false,
+    val artistAlbumPage: Int = 1,
+    val artistTrackPage: Int = 1,
+    val hasMoreArtistAlbums: Boolean = false,
+    val hasMoreArtistTracks: Boolean = false,
+    val loadingMoreArtistAlbums: Boolean = false,
+    val loadingMoreArtistTracks: Boolean = false,
     val search: SearchResults = SearchResults(),
     val searchQuery: String = "",
     val searchLoading: Boolean = false,
+    val searchPage: Int = 1,
+    val hasMoreSearch: Boolean = false,
+    val loadingMoreSearch: Boolean = false,
     val error: String? = null,
 )
+
+private const val ALBUM_PAGE_SIZE = 50
+private const val ARTIST_PAGE_SIZE = 50
+private const val PLAYLIST_PAGE_SIZE = 50
+private const val TRACK_PAGE_SIZE = 100
+private const val FAVORITE_PAGE_SIZE = 50
+private const val ARTIST_ALBUM_PAGE_SIZE = 50
+private const val ARTIST_TRACK_PAGE_SIZE = 100
+private const val PLAYLIST_TRACK_PAGE_SIZE = 100
+private const val SEARCH_PAGE_SIZE = 50
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as MelodeeApplication
     private val container = app.container
-    private var activeCatalog: MusicCatalog = container.demoCatalog
+    private var activeCatalog: MusicCatalog = container.liveCatalog
 
     val settings = app.preferences.settings.stateIn(viewModelScope,
         SharingStarted.WhileSubscribed(5_000), UserSettings())
@@ -113,9 +151,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         viewModelScope.launch {
             container.session.authState.collect { state ->
+                val account = container.session.currentAccount()
+                val needsLogin = state == org.melodee.core.auth.AuthenticationState.SIGNED_OUT ||
+                    state == org.melodee.core.auth.AuthenticationState.REAUTHENTICATION_REQUIRED ||
+                    state == org.melodee.core.auth.AuthenticationState.REFRESH_OUTCOME_UNKNOWN
                 mutableLibrary.value = mutableLibrary.value.copy(
-                    signedIn = container.session.currentAccount() != null,
-                    accountName = container.session.currentAccount()?.username,
+                    signedIn = account != null && !needsLogin,
+                    accountName = account?.username,
                     error = if (state == org.melodee.core.auth.AuthenticationState.REAUTHENTICATION_REQUIRED) {
                         "Sign in again to continue"
                     } else mutableLibrary.value.error,
@@ -136,26 +178,45 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 artistTracks = emptyList(), selectionLoading = false, selectionError = null,
             )
             try {
-                activeCatalog = container.activeCatalog()
                 val account = container.session.currentAccount()
+                if (account == null) {
+                    mutableLibrary.value = LibraryUiState(
+                        mode = CatalogMode.LIVE, loading = false, authChecked = true, signedIn = false,
+                    )
+                    return@launch
+                }
+                activeCatalog = container.liveCatalog
                 val mode = activeCatalog.mode
                 val home = runCatching { activeCatalog.home() }.getOrElse { HomeFeed() }
-                val albums = runCatching { activeCatalog.albums(1, 50) }.getOrElse { emptyList() }
-                val artists = runCatching { activeCatalog.artists(1, 50) }.getOrElse { emptyList() }
-                val playlists = runCatching { activeCatalog.playlists(1, 50) }.getOrElse { emptyList() }
-                val tracks = runCatching { activeCatalog.tracks(1, 100) }.getOrElse { emptyList() }
-                val favorites = runCatching { activeCatalog.favorites() }.getOrElse { emptyList() }
+                val albums = runCatching { activeCatalog.albums(1, ALBUM_PAGE_SIZE) }.getOrElse { emptyList() }
+                val artists = runCatching { activeCatalog.artists(1, ARTIST_PAGE_SIZE) }.getOrElse { emptyList() }
+                val playlists = runCatching { activeCatalog.playlists(1, PLAYLIST_PAGE_SIZE) }.getOrElse { emptyList() }
+                val tracks = runCatching { activeCatalog.tracks(1, TRACK_PAGE_SIZE) }.getOrElse { emptyList() }
+                val favorites = runCatching { activeCatalog.favorites(1, FAVORITE_PAGE_SIZE) }.getOrElse { emptyList() }
+                val live = mode == CatalogMode.LIVE
                 mutableLibrary.value = mutableLibrary.value.copy(
-                    mode = mode, loading = false, signedIn = account != null,
-                    accountName = account?.username, home = home, albums = albums, artists = artists,
+                    mode = mode, loading = false, authChecked = true, signedIn = true,
+                    accountName = account.username, home = home, albums = albums, artists = artists,
                     playlists = playlists, tracks = tracks, favorites = favorites,
-                    error = if (mode == CatalogMode.LIVE && account != null && albums.isEmpty() && artists.isEmpty()) {
-                        "Melodee could not load the library. Check the connection or sign in again."
+                    albumPage = 1, artistPage = 1, playlistPage = 1, trackPage = 1, favoritePage = 1,
+                    hasMoreAlbums = live && albums.size >= ALBUM_PAGE_SIZE,
+                    hasMoreArtists = live && artists.size >= ARTIST_PAGE_SIZE,
+                    hasMorePlaylists = live && playlists.size >= PLAYLIST_PAGE_SIZE,
+                    hasMoreTracks = live && tracks.size >= TRACK_PAGE_SIZE,
+                    hasMoreFavorites = live && favorites.size >= FAVORITE_PAGE_SIZE,
+                    loadingMoreAlbums = false, loadingMoreArtists = false, loadingMorePlaylists = false,
+                    loadingMoreTracks = false, loadingMoreFavorites = false,
+                    playlistTrackPage = 1, hasMorePlaylistTracks = false, loadingMorePlaylistTracks = false,
+                    artistAlbumPage = 1, artistTrackPage = 1, hasMoreArtistAlbums = false,
+                    hasMoreArtistTracks = false, loadingMoreArtistAlbums = false, loadingMoreArtistTracks = false,
+                    searchPage = 1, hasMoreSearch = false, loadingMoreSearch = false,
+                    error = if (live && albums.isEmpty() && artists.isEmpty()) {
+                        "Melodee could not retrieve your catalog. Check the connection or sign in again."
                     } else null,
                 )
             } catch (error: Exception) {
                 mutableLibrary.value = mutableLibrary.value.copy(
-                    loading = false,
+                    loading = false, authChecked = true,
                     error = libraryError(error),
                 )
             }
@@ -240,13 +301,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun favorite(id: String) {
         viewModelScope.launch {
-            if (mutableLibrary.value.mode == CatalogMode.DEMO) {
-                app.preferences.toggleFavorite(id)
-            } else {
-                val favorite = mutableLibrary.value.favorites.none { it.id == id }
-                runCatching { activeCatalog.setFavorite(id, favorite) }
-                    .onFailure { mutableState.value = mutableState.value.copy(error = libraryError(it)) }
-            }
+            val favorite = mutableLibrary.value.favorites.none { it.id == id }
+            runCatching { activeCatalog.setFavorite(id, favorite) }
+                .onFailure { mutableState.value = mutableState.value.copy(error = libraryError(it)) }
             reloadLibrary()
         }
     }
@@ -274,14 +331,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         searchJob?.cancel()
         mutableLibrary.value = mutableLibrary.value.copy(searchQuery = query, searchLoading = query.isNotBlank())
         if (query.isBlank()) {
-            mutableLibrary.value = mutableLibrary.value.copy(search = SearchResults(), searchLoading = false)
+            mutableLibrary.value = mutableLibrary.value.copy(
+                search = SearchResults(), searchLoading = false, searchPage = 1,
+                hasMoreSearch = false, loadingMoreSearch = false,
+            )
             return
         }
         searchJob = viewModelScope.launch {
             delay(250)
             try {
-                val results = activeCatalog.searchDomain(query.trim())
-                mutableLibrary.value = mutableLibrary.value.copy(search = results, searchLoading = false)
+                val results = activeCatalog.searchDomain(query.trim(), 1, SEARCH_PAGE_SIZE)
+                val loaded = results.tracks.size + results.albums.size + results.artists.size + results.playlists.size
+                val more = results.totalCount > loaded ||
+                    listOf(results.tracks.size, results.albums.size, results.artists.size, results.playlists.size)
+                        .any { it >= SEARCH_PAGE_SIZE }
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    search = results, searchLoading = false, searchPage = 1,
+                    hasMoreSearch = more, loadingMoreSearch = false,
+                )
             } catch (error: Exception) {
                 mutableLibrary.value = mutableLibrary.value.copy(
                     search = SearchResults(), searchLoading = false, error = libraryError(error),
@@ -326,11 +393,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             )
             try {
                 val playlist = activeCatalog.playlist(id) ?: throw IllegalStateException("Playlist not found")
-                val tracks = activeCatalog.playlistTracks(id)
+                val tracks = activeCatalog.playlistTracks(id, 1, PLAYLIST_TRACK_PAGE_SIZE)
                 mutableLibrary.value = mutableLibrary.value.copy(
                     selectedAlbum = null, selectedPlaylist = playlist, selectedArtist = null,
                     selectedTracks = tracks, artistAlbums = emptyList(), artistTracks = emptyList(),
                     selectionLoading = false, selectionError = null,
+                    playlistTrackPage = 1, hasMorePlaylistTracks = tracks.size >= PLAYLIST_TRACK_PAGE_SIZE,
+                    loadingMorePlaylistTracks = false,
                 )
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
@@ -352,12 +421,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             )
             try {
                 val artist = activeCatalog.artist(id) ?: throw IllegalStateException("Artist not found")
-                val albums = activeCatalog.artistAlbums(id)
-                val tracks = activeCatalog.artistTracks(id)
+                val albums = activeCatalog.artistAlbums(id, 1, ARTIST_ALBUM_PAGE_SIZE)
+                val tracks = activeCatalog.artistTracks(id, 1, ARTIST_TRACK_PAGE_SIZE)
                 mutableLibrary.value = mutableLibrary.value.copy(
                     selectedAlbum = null, selectedPlaylist = null, selectedArtist = artist,
                     selectedTracks = emptyList(), artistAlbums = albums, artistTracks = tracks,
                     selectionLoading = false, selectionError = null,
+                    artistAlbumPage = 1, artistTrackPage = 1,
+                    hasMoreArtistAlbums = albums.size >= ARTIST_ALBUM_PAGE_SIZE,
+                    hasMoreArtistTracks = tracks.size >= ARTIST_TRACK_PAGE_SIZE,
+                    loadingMoreArtistAlbums = false, loadingMoreArtistTracks = false,
                 )
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
@@ -369,13 +442,192 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun loadMoreAlbums() = loadMoreLibraryPage(
+        loading = mutableLibrary.value.loadingMoreAlbums || !mutableLibrary.value.hasMoreAlbums,
+        markLoading = { copy(loadingMoreAlbums = true) },
+        page = mutableLibrary.value.albumPage,
+        pageSize = ALBUM_PAGE_SIZE,
+        fetch = { page -> activeCatalog.albums(page, ALBUM_PAGE_SIZE) },
+        apply = { state, items, page, more ->
+            state.copy(albums = (state.albums + items).distinctBy(Album::id), albumPage = page,
+                hasMoreAlbums = more, loadingMoreAlbums = false)
+        },
+    )
+
+    fun loadMoreArtists() = loadMoreLibraryPage(
+        loading = mutableLibrary.value.loadingMoreArtists || !mutableLibrary.value.hasMoreArtists,
+        markLoading = { copy(loadingMoreArtists = true) },
+        page = mutableLibrary.value.artistPage,
+        pageSize = ARTIST_PAGE_SIZE,
+        fetch = { page -> activeCatalog.artists(page, ARTIST_PAGE_SIZE) },
+        apply = { state, items, page, more ->
+            state.copy(artists = (state.artists + items).distinctBy(Artist::id), artistPage = page,
+                hasMoreArtists = more, loadingMoreArtists = false)
+        },
+    )
+
+    fun loadMorePlaylists() = loadMoreLibraryPage(
+        loading = mutableLibrary.value.loadingMorePlaylists || !mutableLibrary.value.hasMorePlaylists,
+        markLoading = { copy(loadingMorePlaylists = true) },
+        page = mutableLibrary.value.playlistPage,
+        pageSize = PLAYLIST_PAGE_SIZE,
+        fetch = { page -> activeCatalog.playlists(page, PLAYLIST_PAGE_SIZE) },
+        apply = { state, items, page, more ->
+            state.copy(playlists = (state.playlists + items).distinctBy(Playlist::id), playlistPage = page,
+                hasMorePlaylists = more, loadingMorePlaylists = false)
+        },
+    )
+
+    fun loadMoreTracks() = loadMoreLibraryPage(
+        loading = mutableLibrary.value.loadingMoreTracks || !mutableLibrary.value.hasMoreTracks,
+        markLoading = { copy(loadingMoreTracks = true) },
+        page = mutableLibrary.value.trackPage,
+        pageSize = TRACK_PAGE_SIZE,
+        fetch = { page -> activeCatalog.tracks(page, TRACK_PAGE_SIZE) },
+        apply = { state, items, page, more ->
+            state.copy(tracks = (state.tracks + items).distinctBy(Track::id), trackPage = page,
+                hasMoreTracks = more, loadingMoreTracks = false)
+        },
+    )
+
+    fun loadMoreFavorites() = loadMoreLibraryPage(
+        loading = mutableLibrary.value.loadingMoreFavorites || !mutableLibrary.value.hasMoreFavorites,
+        markLoading = { copy(loadingMoreFavorites = true) },
+        page = mutableLibrary.value.favoritePage,
+        pageSize = FAVORITE_PAGE_SIZE,
+        fetch = { page -> activeCatalog.favorites(page, FAVORITE_PAGE_SIZE) },
+        apply = { state, items, page, more ->
+            state.copy(favorites = (state.favorites + items).distinctBy(Track::id), favoritePage = page,
+                hasMoreFavorites = more, loadingMoreFavorites = false)
+        },
+    )
+
+    fun loadMorePlaylistTracks() {
+        val state = mutableLibrary.value
+        val playlist = state.selectedPlaylist ?: return
+        if (state.loadingMorePlaylistTracks || !state.hasMorePlaylistTracks) return
+        mutableLibrary.value = state.copy(loadingMorePlaylistTracks = true)
+        viewModelScope.launch {
+            try {
+                val next = activeCatalog.playlistTracks(playlist.id, state.playlistTrackPage + 1, PLAYLIST_TRACK_PAGE_SIZE)
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    selectedTracks = (mutableLibrary.value.selectedTracks + next).distinctBy(Track::id),
+                    playlistTrackPage = state.playlistTrackPage + 1,
+                    hasMorePlaylistTracks = next.size >= PLAYLIST_TRACK_PAGE_SIZE,
+                    loadingMorePlaylistTracks = false,
+                )
+            } catch (error: Exception) {
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    loadingMorePlaylistTracks = false, selectionError = libraryError(error),
+                )
+            }
+        }
+    }
+
+    fun loadMoreArtistAlbums() {
+        val state = mutableLibrary.value
+        val artist = state.selectedArtist ?: return
+        if (state.loadingMoreArtistAlbums || !state.hasMoreArtistAlbums) return
+        mutableLibrary.value = state.copy(loadingMoreArtistAlbums = true)
+        viewModelScope.launch {
+            try {
+                val next = activeCatalog.artistAlbums(artist.id, state.artistAlbumPage + 1, ARTIST_ALBUM_PAGE_SIZE)
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    artistAlbums = (mutableLibrary.value.artistAlbums + next).distinctBy(Album::id),
+                    artistAlbumPage = state.artistAlbumPage + 1,
+                    hasMoreArtistAlbums = next.size >= ARTIST_ALBUM_PAGE_SIZE,
+                    loadingMoreArtistAlbums = false,
+                )
+            } catch (error: Exception) {
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    loadingMoreArtistAlbums = false, selectionError = libraryError(error),
+                )
+            }
+        }
+    }
+
+    fun loadMoreArtistTracks() {
+        val state = mutableLibrary.value
+        val artist = state.selectedArtist ?: return
+        if (state.loadingMoreArtistTracks || !state.hasMoreArtistTracks) return
+        mutableLibrary.value = state.copy(loadingMoreArtistTracks = true)
+        viewModelScope.launch {
+            try {
+                val next = activeCatalog.artistTracks(artist.id, state.artistTrackPage + 1, ARTIST_TRACK_PAGE_SIZE)
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    artistTracks = (mutableLibrary.value.artistTracks + next).distinctBy(Track::id),
+                    artistTrackPage = state.artistTrackPage + 1,
+                    hasMoreArtistTracks = next.size >= ARTIST_TRACK_PAGE_SIZE,
+                    loadingMoreArtistTracks = false,
+                )
+            } catch (error: Exception) {
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    loadingMoreArtistTracks = false, selectionError = libraryError(error),
+                )
+            }
+        }
+    }
+
+    fun loadMoreSearch() {
+        val state = mutableLibrary.value
+        if (state.loadingMoreSearch || !state.hasMoreSearch || state.searchQuery.isBlank()) return
+        mutableLibrary.value = state.copy(loadingMoreSearch = true)
+        viewModelScope.launch {
+            try {
+                val next = activeCatalog.searchDomain(state.searchQuery.trim(), state.searchPage + 1, SEARCH_PAGE_SIZE)
+                val merged = state.search.copy(
+                    tracks = (state.search.tracks + next.tracks).distinctBy(Track::id),
+                    albums = (state.search.albums + next.albums).distinctBy(Album::id),
+                    artists = (state.search.artists + next.artists).distinctBy(Artist::id),
+                    playlists = (state.search.playlists + next.playlists).distinctBy(Playlist::id),
+                    totalCount = maxOf(state.search.totalCount, next.totalCount),
+                )
+                val loaded = merged.tracks.size + merged.albums.size + merged.artists.size + merged.playlists.size
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    search = merged, searchPage = state.searchPage + 1,
+                    hasMoreSearch = merged.totalCount > loaded ||
+                        listOf(next.tracks.size, next.albums.size, next.artists.size, next.playlists.size)
+                            .any { it >= SEARCH_PAGE_SIZE },
+                    loadingMoreSearch = false,
+                )
+            } catch (error: Exception) {
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    loadingMoreSearch = false, error = libraryError(error),
+                )
+            }
+        }
+    }
+
+    private fun <T> loadMoreLibraryPage(
+        loading: Boolean,
+        markLoading: LibraryUiState.() -> LibraryUiState,
+        page: Int,
+        pageSize: Int,
+        fetch: suspend (Int) -> List<T>,
+        apply: (LibraryUiState, List<T>, Int, Boolean) -> LibraryUiState,
+    ) {
+        if (loading) return
+        mutableLibrary.value = mutableLibrary.value.markLoading()
+        viewModelScope.launch {
+            try {
+                val items = fetch(page + 1)
+                mutableLibrary.value = apply(mutableLibrary.value, items, page + 1, items.size >= pageSize)
+            } catch (error: Exception) {
+                mutableLibrary.value = mutableLibrary.value.copy(
+                    loadingMoreAlbums = false, loadingMoreArtists = false, loadingMorePlaylists = false,
+                    loadingMoreTracks = false, loadingMoreFavorites = false, error = libraryError(error),
+                )
+            }
+        }
+    }
+
     private fun libraryError(error: Throwable): String = when (error) {
         is org.melodee.android.live.auth.NotSignedInException -> "Sign in to your Melodee server to browse your library."
         is org.melodee.android.live.auth.ReauthenticationRequiredException -> "Your session expired. Sign in again."
         is org.melodee.android.live.auth.SessionOutcomeUnknownException ->
             "Sign-in could not be confirmed. Sign in again to recover."
         is java.io.IOException -> "Could not reach the Melodee server."
-        else -> "The Melodee library could not be loaded."
+        else -> "The Melodee catalog could not be retrieved."
     }
 
     private fun friendlyPlaybackError(error: PlaybackException): String =

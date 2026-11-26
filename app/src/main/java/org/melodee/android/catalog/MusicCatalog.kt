@@ -38,15 +38,15 @@ interface MusicCatalog {
     suspend fun albumTracks(id: String): List<Track>
     suspend fun artists(page: Int = 1, pageSize: Int = 50): List<Artist>
     suspend fun artist(id: String): Artist?
-    suspend fun artistAlbums(id: String): List<Album>
-    suspend fun artistTracks(id: String): List<Track>
+    suspend fun artistAlbums(id: String, page: Int = 1, pageSize: Int = 50): List<Album>
+    suspend fun artistTracks(id: String, page: Int = 1, pageSize: Int = 100): List<Track>
     suspend fun playlists(page: Int = 1, pageSize: Int = 50): List<Playlist>
     suspend fun playlist(id: String): Playlist?
-    suspend fun playlistTracks(id: String): List<Track>
+    suspend fun playlistTracks(id: String, page: Int = 1, pageSize: Int = 100): List<Track>
     suspend fun tracks(page: Int = 1, pageSize: Int = 50): List<Track>
-    suspend fun favorites(): List<Track>
+    suspend fun favorites(page: Int = 1, pageSize: Int = 50): List<Track>
 
     /** Idempotent favorite mutation; demo mode updates local preferences instead. */
     suspend fun setFavorite(trackId: String, favorite: Boolean)
-    suspend fun searchDomain(query: String): SearchResults
+    suspend fun searchDomain(query: String, page: Int = 1, pageSize: Int = 50): SearchResults
 }

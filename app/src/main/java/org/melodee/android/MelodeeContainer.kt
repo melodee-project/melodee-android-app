@@ -8,7 +8,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import okhttp3.OkHttpClient
-import org.melodee.android.catalog.DemoMusicCatalog
 import org.melodee.android.catalog.LiveMusicCatalog
 import org.melodee.android.catalog.MusicCatalog
 import org.melodee.android.live.api.MelodeeApi
@@ -72,7 +71,6 @@ class MelodeeContainer(private val app: MelodeeApplication) {
     val liveCatalog: LiveMusicCatalog by lazy {
         LiveMusicCatalog(api, session, catalogCache, BuildConfig.DEBUG)
     }
-    val demoCatalog: MusicCatalog = DemoMusicCatalog(app.catalog)
     val prefetchExecutor: PrefetchExecutor by lazy {
         PrefetchExecutor(appScope, Media3TrackDownloader(audioCache, session), PrefetchPolicy())
     }
@@ -81,7 +79,9 @@ class MelodeeContainer(private val app: MelodeeApplication) {
         session.startProactiveRenewal()
     }
 
-    /** Live data is selected once an account is present; otherwise the demo stays fully usable. */
-    suspend fun activeCatalog(): MusicCatalog =
-        if (session.currentAccount() != null) liveCatalog else demoCatalog
+    /** The app has no offline catalog: an authenticated account is mandatory. */
+    suspend fun activeCatalog(): MusicCatalog {
+        session.currentAccount() ?: throw org.melodee.android.live.auth.NotSignedInException()
+        return liveCatalog
+    }
 }

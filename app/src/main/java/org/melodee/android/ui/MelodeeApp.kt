@@ -1,11 +1,14 @@
 package org.melodee.android.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -25,6 +28,34 @@ private val destinations = listOf(
 
 @Composable
 fun MelodeeApp(vm: PlayerViewModel = viewModel()) {
+    val library by vm.library.collectAsStateWithLifecycle()
+    if (!library.authChecked) {
+        Box(Modifier.fillMaxSize().background(Ink), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(org.melodee.android.R.drawable.melodee_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(72.dp),
+                )
+                CircularProgressIndicator(color = Accent, modifier = Modifier.padding(top = 24.dp))
+                Text("Checking your session…", color = Muted, modifier = Modifier.padding(top = 14.dp))
+            }
+        }
+        return
+    }
+    if (!library.signedIn) {
+        Surface(Modifier.fillMaxSize(), color = Ink, contentColor = SoftWhite) {
+            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                ConnectionScreen(vm)
+            }
+        }
+        return
+    }
+    AuthenticatedMelodeeApp(vm)
+}
+
+@Composable
+private fun AuthenticatedMelodeeApp(vm: PlayerViewModel) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route ?: "home"
@@ -81,7 +112,7 @@ fun MelodeeApp(vm: PlayerViewModel = viewModel()) {
             }
             composable("search") { SearchScreen(vm, playback, library) { navigate("artist/$it") } }
             composable("library") {
-                LibraryScreen(vm, preferences, playback, library,
+                LibraryScreen(vm, playback, library,
                     { navigate("album/$it") }, { navigate("playlist/$it") }, { navigate("artist/$it") })
             }
             composable("settings") {

@@ -25,7 +25,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.melodee.android.model.Album
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.Playlist
 import org.melodee.android.model.Track
 import org.melodee.android.playback.LibraryUiState
@@ -49,7 +48,7 @@ fun HomeScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryU
                 Text("Melodee", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 10.dp).weight(1f))
                 Surface(color = Raised, shape = RoundedCornerShape(30.dp)) {
                     Text(
-                        if (library.mode == CatalogMode.DEMO) "Demo library" else library.accountName.orEmpty().ifBlank { "Connected" },
+                        library.accountName.orEmpty().ifBlank { "Connected" },
                         style = MaterialTheme.typography.labelSmall, color = Muted,
                         modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
                     )
@@ -61,14 +60,13 @@ fun HomeScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryU
             Column(Modifier.padding(top = 4.dp, bottom = 2.dp)) {
                 Text("Find your moment.", style = MaterialTheme.typography.headlineLarge)
                 Text(
-                    if (library.mode == CatalogMode.DEMO) "Your music, wherever life takes you."
-                    else "Your library, ready for the road.",
+                    "Your library, ready for the road.",
                     color = Muted, modifier = Modifier.padding(top = 7.dp),
                 )
             }
         }
         if (library.loading && featured == null) {
-            item { LoadingPanel("Loading your library…") }
+            item { LoadingPanel("Fetching your catalog…") }
         }
         if (library.error != null && featured == null) {
             item { ErrorPanel(library.error, vm::refresh) }
@@ -81,7 +79,7 @@ fun HomeScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryU
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
                         listOf(Color.Transparent, Color(0xCC121020)), startY = 100f)))
                     Column(Modifier.align(Alignment.BottomStart).padding(22.dp)) {
-                        Text(if (library.mode == CatalogMode.DEMO) "FEATURED ALBUM" else "FROM YOUR LIBRARY",
+                        Text("FROM YOUR LIBRARY",
                             color = Color(0xFFE7DCF6), fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
                         Text(featured.title, color = Color.White, style = MaterialTheme.typography.headlineLarge,
                             maxLines = 2, overflow = TextOverflow.Ellipsis,
@@ -102,7 +100,7 @@ fun HomeScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryU
                     playlists.forEachIndexed { index, playlist ->
                         val colors = if (index == 0) listOf(Color(0xFF176B80), Color(0xFF123B59))
                         else listOf(Color(0xFF7847AF), Color(0xFF352049))
-                        PlaylistTile(playlist, colors, library.mode, Modifier.weight(1f)) { onPlaylist(playlist.id) }
+                        PlaylistTile(playlist, colors, Modifier.weight(1f)) { onPlaylist(playlist.id) }
                     }
                     if (playlists.size == 1) Spacer(Modifier.weight(1f))
                 }
@@ -122,7 +120,7 @@ fun HomeScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryU
 }
 
 @Composable
-private fun PlaylistTile(playlist: Playlist, colors: List<Color>, mode: CatalogMode,
+private fun PlaylistTile(playlist: Playlist, colors: List<Color>,
     modifier: Modifier, onClick: () -> Unit) {
     Column(modifier.height(136.dp).clip(RoundedCornerShape(20.dp))
         .background(Brush.linearGradient(colors))
@@ -130,12 +128,7 @@ private fun PlaylistTile(playlist: Playlist, colors: List<Color>, mode: CatalogM
         Icon(if (playlist.id == "daily-mix") Icons.Rounded.GraphicEq else Icons.Rounded.NightsStay,
             null, tint = Color.White.copy(alpha = .12f), modifier = Modifier.size(72.dp))
         Column {
-            Text(
-                if (mode == CatalogMode.DEMO) {
-                    if (playlist.id == "daily-mix") "YOUR DAILY SOUND" else "SLOW IT DOWN"
-                } else "PLAYLIST",
-                color = Color.White.copy(alpha = .7f), fontSize = 9.sp, letterSpacing = 1.sp,
-            )
+            Text("PLAYLIST", color = Color.White.copy(alpha = .7f), fontSize = 9.sp, letterSpacing = 1.sp)
             Text(playlist.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
             Text(playlist.description.ifBlank { "${playlist.songCount} tracks" },
@@ -152,7 +145,7 @@ fun SearchScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Librar
     val results = library.search
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            PageHeader("Search", if (library.mode == CatalogMode.DEMO) "Find your next favorite." else "Search your Melodee library.")
+            PageHeader("Search", "Search your Melodee library.")
             OutlinedTextField(value = query, onValueChange = { query = it; },
                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp), singleLine = true,
                 placeholder = { Text("Songs, artists, albums", color = Muted) },
@@ -170,7 +163,7 @@ fun SearchScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Librar
                 SectionHeader("Browse")
                 val albums = library.albums.take(2)
                 if (albums.isEmpty()) {
-                    Text("Connect your server to browse your library.", color = Muted)
+                    Text("No albums are available for this account yet.", color = Muted)
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         albums.forEach { album ->
@@ -231,6 +224,9 @@ fun SearchScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Librar
                         trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = Muted) })
                 }
             }
+            if (library.hasMoreSearch) {
+                item { ShowMoreRow(library.loadingMoreSearch, vm::loadMoreSearch) }
+            }
         }
     }
 }
@@ -251,14 +247,12 @@ private fun AlbumRow(album: Album, onClick: () -> Unit) {
 }
 
 @Composable
-fun LibraryScreen(vm: PlayerViewModel, settings: org.melodee.android.data.UserSettings,
-    playback: PlaybackUiState, library: LibraryUiState,
+fun LibraryScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: LibraryUiState,
     onAlbum: (String) -> Unit, onPlaylist: (String) -> Unit, onArtist: (String) -> Unit) {
     var selected by rememberSaveable { mutableStateOf("Albums") }
-    val demoFavorites = library.tracks.filter { it.id in settings.favorites }
-    val favorites = if (library.mode == CatalogMode.DEMO) demoFavorites else library.favorites
+    val favorites = library.favorites
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item { PageHeader("Your Library", if (library.mode == CatalogMode.DEMO) "A collection that feels like you." else "Your Melodee collection.") }
+        item { PageHeader("Your Library", "Your Melodee collection.") }
         item {
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
                 .background(Brush.horizontalGradient(listOf(Color(0xFF362547), Surface)))
@@ -281,7 +275,7 @@ fun LibraryScreen(vm: PlayerViewModel, settings: org.melodee.android.data.UserSe
         }
         when (selected) {
             "Albums" -> {
-                if (library.albums.isEmpty()) item { EmptyPanel("No albums yet", "Connect your server or sync your library.") }
+                if (library.albums.isEmpty()) item { EmptyPanel("No albums yet", "No albums are available for this account.") }
                 items(library.albums.chunked(2), key = { row -> row.joinToString("|") { it.id } }) { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         row.forEach { album ->
@@ -297,14 +291,16 @@ fun LibraryScreen(vm: PlayerViewModel, settings: org.melodee.android.data.UserSe
                         if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
+                if (library.hasMoreAlbums) item { ShowMoreRow(library.loadingMoreAlbums, vm::loadMoreAlbums) }
             }
             "Artists" -> {
-                if (library.artists.isEmpty()) item { EmptyPanel("No artists yet", "Your server library will appear here.") }
+                if (library.artists.isEmpty()) item { EmptyPanel("No artists yet", "Catalog entries will appear here as you browse.") }
                 items(library.artists, key = { it.id }) { artist ->
                     SettingRow(Icons.Rounded.Person, artist.name, "${artist.albumCount} albums · ${artist.songCount} songs",
                         { onArtist(artist.id) },
                         trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = Muted) })
                 }
+                if (library.hasMoreArtists) item { ShowMoreRow(library.loadingMoreArtists, vm::loadMoreArtists) }
             }
             "Playlists" -> {
                 if (library.playlists.isEmpty()) item { EmptyPanel("No playlists yet", "Create or sync a playlist on your Melodee server.") }
@@ -313,6 +309,7 @@ fun LibraryScreen(vm: PlayerViewModel, settings: org.melodee.android.data.UserSe
                         "${playlist.songCount} tracks", { onPlaylist(playlist.id) },
                         trailing = { Icon(Icons.Rounded.ChevronRight, null, tint = Muted) })
                 }
+                if (library.hasMorePlaylists) item { ShowMoreRow(library.loadingMorePlaylists, vm::loadMorePlaylists) }
             }
             "Favorites" -> {
                 if (favorites.isEmpty()) item { EmptyPanel("Your favorites start here.", "Tap the heart on the player to save a song.") }
@@ -320,23 +317,22 @@ fun LibraryScreen(vm: PlayerViewModel, settings: org.melodee.android.data.UserSe
                     TrackRow(track, { vm.play(favorites.map(Track::id), favorites.indexOf(track)) },
                         playback.current?.id == track.id)
                 }
+                if (library.hasMoreFavorites) item { ShowMoreRow(library.loadingMoreFavorites, vm::loadMoreFavorites) }
             }
             else -> {
                 val tracks = library.tracks
-                if (tracks.isEmpty()) item { EmptyPanel("No tracks yet", "Your server library will appear here.") }
+                if (tracks.isEmpty()) item { EmptyPanel("No tracks yet", "Catalog entries will appear here as you browse.") }
                 items(tracks, key = { it.id }) { track ->
                     TrackRow(track, { vm.play(tracks.map(Track::id), tracks.indexOf(track)) },
                         playback.current?.id == track.id)
                 }
+                if (library.hasMoreTracks) item { ShowMoreRow(library.loadingMoreTracks, vm::loadMoreTracks) }
             }
         }
         item {
             Spacer(Modifier.height(20.dp))
-            Text(if (library.mode == CatalogMode.DEMO) "DEMO COLLECTION" else "MELODEE SERVER",
-                color = Muted, letterSpacing = 2.sp, fontSize = 10.sp)
-            Text(if (library.mode == CatalogMode.DEMO)
-                "Six original previews to explore the Melodee experience."
-            else "Metadata is cached for the current account; audio remains temporary.",
+            Text("MELODEE SERVER", color = Muted, letterSpacing = 2.sp, fontSize = 10.sp)
+            Text("Catalog metadata stays scoped to this account; tracks stream on demand and are not downloaded.",
                 color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
         }
     }
@@ -370,7 +366,7 @@ fun CollectionScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Li
             if (!description.isNullOrBlank()) Text(description, color = Muted,
                 style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
             Row(Modifier.fillMaxWidth().padding(top = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${tracks.size} tracks${if (library.mode == CatalogMode.DEMO) " · Demo previews" else ""}",
+                Text("${tracks.size} tracks",
                     color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Button(onClick = { if (playlist) vm.playPlaylist(id) else vm.playAlbum(id) },
                     enabled = playback.connected && tracks.isNotEmpty()) {
@@ -390,6 +386,9 @@ fun CollectionScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Li
             items(tracks, key = { "${it.id}-${tracks.indexOf(it)}" }) { track ->
                 TrackRow(track, { vm.play(tracks.map(Track::id), tracks.indexOf(track)) },
                     playback.current?.id == track.id)
+            }
+            if (playlist && library.hasMorePlaylistTracks) {
+                item { ShowMoreRow(library.loadingMorePlaylistTracks, vm::loadMorePlaylistTracks) }
             }
         }
     }
@@ -447,6 +446,7 @@ fun ArtistScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Librar
                         if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
+                if (library.hasMoreArtistAlbums) item { ShowMoreRow(library.loadingMoreArtistAlbums, vm::loadMoreArtistAlbums) }
             }
             if (tracks.isNotEmpty()) {
                 item { SectionHeader("Songs") }
@@ -454,9 +454,20 @@ fun ArtistScreen(vm: PlayerViewModel, playback: PlaybackUiState, library: Librar
                     TrackRow(track, { vm.play(tracks.map(Track::id), tracks.indexOf(track)) },
                         playing = playback.current?.id == track.id)
                 }
+                if (library.hasMoreArtistTracks) item { ShowMoreRow(library.loadingMoreArtistTracks, vm::loadMoreArtistTracks) }
             } else if (!library.selectionLoading) {
                 item { EmptyPanel("No songs available", "This artist has no readable tracks for this account.") }
             }
+        }
+    }
+}
+
+@Composable
+fun ShowMoreRow(loading: Boolean, onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        OutlinedButton(onClick = onClick, enabled = !loading) {
+            if (loading) CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Accent, strokeWidth = 2.dp)
+            else Text("Show more")
         }
     }
 }

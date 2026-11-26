@@ -40,8 +40,6 @@ import org.melodee.android.MainActivity
 import org.melodee.android.MelodeeApplication
 import org.melodee.android.catalog.LiveMediaItems
 import org.melodee.android.catalog.MusicCatalog
-import org.melodee.android.data.PlaybackBookmark
-import org.melodee.android.model.CatalogMode
 import org.melodee.android.model.PlaybackSnapshot
 import org.melodee.android.model.QueueContext
 import org.melodee.android.model.QueueEntry
@@ -86,7 +84,7 @@ class PlaybackService : MediaLibraryService() {
                 val settings = app.preferences.settings.first()
                 rememberPosition = settings.rememberPosition
                 player.setHandleAudioBecomingNoisy(settings.pauseOnDisconnect)
-                val catalog = catalog()
+                catalog()
                 val account = container.session.currentAccount()
                 accountScope = account?.let { AccountScope(it.serverId, it.accountId) }
                 val saved = bookmarkMutex.withLock {
@@ -94,17 +92,12 @@ class PlaybackService : MediaLibraryService() {
                         app.database.playbackDao().clear()
                         accountScope?.let { container.queueStore.clear(it) }
                         null
-                    } else if (catalog.mode == CatalogMode.LIVE) {
-                        accountScope?.let { container.queueStore.load(it) }
                     } else {
-                        app.database.playbackDao().load()
+                        accountScope?.let { container.queueStore.load(it) }
                     }
                 }
                 // A new controller request wins over state loaded asynchronously.
-                if (saved != null && player.mediaItemCount == 0) {
-                    if (saved is PlaybackSnapshot) restoreLive(saved)
-                    else if (saved is PlaybackBookmark) restoreDemo(saved)
-                }
+                if (saved != null && player.mediaItemCount == 0) restoreLive(saved)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -193,7 +186,7 @@ class PlaybackService : MediaLibraryService() {
 
     private fun schedulePrefetch() {
         val catalog = cachedCatalog ?: return
-        if (catalog.mode != CatalogMode.LIVE || !player.isPlaying || player.mediaItemCount == 0) {
+        if (!player.isPlaying || player.mediaItemCount == 0) {
             container.prefetchExecutor.cancel()
             return
         }
@@ -224,23 +217,20 @@ class PlaybackService : MediaLibraryService() {
                 // Capture after locking so an old save cannot overwrite a newer queue
                 // or a preference-driven clear.
                 if (!rememberPosition) return@withLock
+                if (accountScope == null && container.session.currentAccount() == null) return@withLock
                 val catalog = cachedCatalog ?: catalog()
                 if (player.mediaItemCount == 0) {
                     app.database.playbackDao().clear()
                     accountScope?.let { container.queueStore.clear(it) }
                     return@withLock
                 }
-                if (catalog.mode == CatalogMode.LIVE) saveLiveSnapshot() else saveDemoBookmark()
+                saveLiveSnapshot()
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             Log.w("MelodeePlayback", "Playback state could not be saved")
         }
-    }
-
-    private suspend fun saveDemoBookmark() {
-        app.database.playbackDao().save(snapshotDemo())
     }
 
     private suspend fun saveLiveSnapshot() {
@@ -271,15 +261,6 @@ class PlaybackService : MediaLibraryService() {
         )
     }
 
-    private fun snapshotDemo(): PlaybackBookmark = PlaybackBookmark(
-        trackIds = (0 until player.mediaItemCount).joinToString("|") { player.getMediaItemAt(it).mediaId },
-        currentIndex = player.currentMediaItemIndex.coerceAtLeast(0),
-        positionMs = player.currentPosition.coerceAtLeast(0),
-        shuffle = player.shuffleModeEnabled,
-        repeatMode = player.repeatMode,
-        shuffleOrder = actualOrder().joinToString(","),
-    )
-
     private fun actualOrder(): List<Int> {
         val order = mutableListOf<Int>()
         val visited = mutableSetOf<Int>()
@@ -291,17 +272,6 @@ class PlaybackService : MediaLibraryService() {
         }
         return order
     }
-
-    private fun restoreDemo(saved: PlaybackBookmark) {
-        val restored = resolveBookmark(saved) ?: return
-        player.setMediaItems(restored.mediaItems, restored.startIndex, restored.startPositionMs)
-        restoreModes(saved.shuffle, saved.repeatMode, parseShuffleOrder(saved.shuffleOrder), restored.mediaItems.size)
-        player.prepare()
-        // Never forces autoplay. A user or trusted controller must request play.
-    }
-
-    private fun parseShuffleOrder(value: String): List<Int> =
-        value.split(',').mapNotNull(String::toIntOrNull)
 
     private fun restoreLive(saved: PlaybackSnapshot) {
         val items = saved.entries.map { LiveMediaItems.mediaItem(it.track) }
@@ -324,17 +294,6 @@ class PlaybackService : MediaLibraryService() {
         player.repeatMode = repeatMode.takeIf {
             it in setOf(Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ONE, Player.REPEAT_MODE_ALL)
         } ?: Player.REPEAT_MODE_OFF
-    }
-
-    private fun resolveBookmark(saved: PlaybackBookmark): MediaSession.MediaItemsWithStartPosition? {
-        val surviving = saved.trackIds.split('|').mapIndexedNotNull { index, id ->
-            app.catalog.track(id)?.let { index to app.catalog.mediaItem(it) }
-        }
-        if (surviving.isEmpty()) return null
-        val selected = surviving.indexOfFirst { it.first >= saved.currentIndex }
-            .takeIf { it >= 0 } ?: surviving.lastIndex
-        val position = if (surviving[selected].first == saved.currentIndex) saved.positionMs.coerceAtLeast(0) else 0
-        return MediaSession.MediaItemsWithStartPosition(surviving.map { it.second }, selected, position)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
@@ -446,45 +405,29 @@ class PlaybackService : MediaLibraryService() {
                 )
             }
             val selected = catalog()
-            val request = if (selected.mode == CatalogMode.LIVE) {
-                val account = accountScope ?: container.session.currentAccount()?.let {
-                    AccountScope(it.serverId, it.accountId).also { value -> accountScope = value }
-                }
-                val saved = account?.let { container.queueStore.load(it) }
-                if (saved != null) {
-                    player.shuffleModeEnabled = saved.shuffle
-                    player.repeatMode = saved.repeatMode
-                    queueContext = saved.context
-                    queueContextId = saved.contextId
-                    MediaSession.MediaItemsWithStartPosition(
-                        saved.entries.map { LiveMediaItems.mediaItem(it.track) },
-                        saved.currentIndex.coerceIn(saved.entries.indices),
-                        saved.positionMs.coerceAtLeast(0),
-                    )
-                } else {
-                    val fallbackTracks = runCatching {
-                        val album = selected.home().recentAlbums.firstOrNull()
-                        if (album != null) selected.albumTracks(album.id) else selected.tracks(1, 25)
-                    }.getOrDefault(emptyList())
-                    MediaSession.MediaItemsWithStartPosition(
-                        selected.mediaItems(fallbackTracks.map(Track::id)), 0, 0,
-                    )
-                }
-            } else {
-                val saved = bookmarkMutex.withLock {
-                    if (rememberPosition) app.database.playbackDao().load() else null
-                }
-                if (saved != null) {
-                    player.shuffleModeEnabled = saved.shuffle
-                    player.repeatMode = saved.repeatMode
-                }
-                saved?.let(::resolveBookmark) ?: run {
-                    val fallback = app.catalog.albums.firstOrNull()
-                        ?.let { app.catalog.items(it.trackIds) }.orEmpty()
-                    MediaSession.MediaItemsWithStartPosition(fallback, 0, 0)
-                }
+            val account = accountScope ?: container.session.currentAccount()?.let {
+                AccountScope(it.serverId, it.accountId).also { value -> accountScope = value }
             }
-            request
+            val saved = account?.let { container.queueStore.load(it) }
+            if (saved != null) {
+                player.shuffleModeEnabled = saved.shuffle
+                player.repeatMode = saved.repeatMode
+                queueContext = saved.context
+                queueContextId = saved.contextId
+                MediaSession.MediaItemsWithStartPosition(
+                    saved.entries.map { LiveMediaItems.mediaItem(it.track) },
+                    saved.currentIndex.coerceIn(saved.entries.indices),
+                    saved.positionMs.coerceAtLeast(0),
+                )
+            } else {
+                val fallbackTracks = runCatching {
+                    val album = selected.home().recentAlbums.firstOrNull()
+                    if (album != null) selected.albumTracks(album.id) else selected.tracks(1, 25)
+                }.getOrDefault(emptyList())
+                MediaSession.MediaItemsWithStartPosition(
+                    selected.mediaItems(fallbackTracks.map(Track::id)), 0, 0,
+                )
+            }
         }
 
         private fun normalizedPosition(position: Long) = if (position == C.TIME_UNSET) 0L else position.coerceAtLeast(0)
@@ -496,8 +439,7 @@ class PlaybackService : MediaLibraryService() {
                     query != null -> catalog.search(query, 1, 100)
                     item.mediaId.startsWith("live:track:") ->
                         catalog.mediaItems(listOf(item.mediaId.removePrefix("live:track:")))
-                    item.mediaId.startsWith("album:") || item.mediaId.startsWith("playlist:") ||
-                        item.mediaId.startsWith("live:album:") || item.mediaId.startsWith("live:playlist:") ||
+                    item.mediaId.startsWith("live:album:") || item.mediaId.startsWith("live:playlist:") ||
                         item.mediaId.startsWith("live:artist:") || item.mediaId == "live:favorites" -> {
                         catalog.expandSelection(item.mediaId)?.let { catalog.mediaItems(it) }.orEmpty()
                     }

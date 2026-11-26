@@ -26,8 +26,8 @@ class LiveCatalogCache(
     suspend fun savePlaylist(account: AccountScope, playlist: PlaylistDto) =
         dao.save(entity(account, "playlist", playlist.id, MelodeeJson.encodeToString(playlist)))
 
-    suspend fun loadAlbums(account: AccountScope): List<AlbumDto> =
-        dao.loadKind(accountKey(account), "album").mapNotNull {
+    suspend fun loadAlbums(account: AccountScope, limit: Int = 500): List<AlbumDto> =
+        dao.loadKind(accountKey(account), "album", limit).mapNotNull {
             runCatching { MelodeeJson.decodeFromString(AlbumDto.serializer(), it.payload) }.getOrNull()
         }
 
@@ -36,8 +36,8 @@ class LiveCatalogCache(
             runCatching { MelodeeJson.decodeFromString(AlbumDto.serializer(), it.payload) }.getOrNull()
         }
 
-    suspend fun loadSongs(account: AccountScope): List<SongDto> =
-        dao.loadKind(accountKey(account), "song").mapNotNull {
+    suspend fun loadSongs(account: AccountScope, limit: Int = 1_000): List<SongDto> =
+        dao.loadKind(accountKey(account), "song", limit).mapNotNull {
             runCatching { MelodeeJson.decodeFromString(SongDto.serializer(), it.payload) }.getOrNull()
         }
 
@@ -46,8 +46,8 @@ class LiveCatalogCache(
             runCatching { MelodeeJson.decodeFromString(SongDto.serializer(), it.payload) }.getOrNull()
         }
 
-    suspend fun loadPlaylists(account: AccountScope): List<PlaylistDto> =
-        dao.loadKind(accountKey(account), "playlist").mapNotNull {
+    suspend fun loadPlaylists(account: AccountScope, limit: Int = 500): List<PlaylistDto> =
+        dao.loadKind(accountKey(account), "playlist", limit).mapNotNull {
             runCatching { MelodeeJson.decodeFromString(PlaylistDto.serializer(), it.payload) }.getOrNull()
         }
 

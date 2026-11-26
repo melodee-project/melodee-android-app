@@ -64,6 +64,22 @@ class MelodeeApiTest {
         assertEquals(10, page.meta.totalCount)
     }
 
+    @Test fun `paged catalog and search send the requested page`() = runTest {
+        server.enqueue(json("""{"meta":{"totalCount":0},"data":[]}"""))
+        api.albums(origin, "token", page = 4, pageSize = 25)
+        val albumsRequest = server.takeRequest()
+        assertTrue(albumsRequest.path!!.contains("page=4"))
+        assertTrue(albumsRequest.path!!.contains("pageSize=25"))
+
+        server.enqueue(json("""{"meta":{},"data":{"artists":[],"albums":[],"songs":[],"playlists":[]}}"""))
+        api.search(origin, "token", "Dune", pageSize = 10, page = 3)
+        val searchRequest = server.takeRequest()
+        val body = searchRequest.body.readUtf8()
+        assertTrue(body.contains("\"artistPage\":3"))
+        assertTrue(body.contains("\"albumPage\":3"))
+        assertTrue(body.contains("\"songPage\":3"))
+    }
+
     @Test fun `search sends the grouped POST request and parses all result types`() = runTest {
         server.enqueue(json("""
             {"meta":{"totalCount":2,"pageSize":20,"currentPage":1,"totalPages":1},

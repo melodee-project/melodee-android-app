@@ -137,25 +137,24 @@ class LiveMusicCatalog(
             mediaId == ARTISTS -> artists(safePage, safeSize).map(::artistNode)
             mediaId == SONGS -> tracks(safePage, safeSize).map(::mediaItem)
             mediaId == PLAYLISTS -> playlists(safePage, safeSize).map(::playlistNode)
-            mediaId == FAVORITES -> favorites().drop((safePage - 1) * safeSize).take(safeSize).map(::mediaItem)
+            mediaId == FAVORITES -> favorites(safePage, safeSize).map(::mediaItem)
             mediaId.startsWith(ALBUM_PREFIX) -> albumTracks(mediaId.removePrefix(ALBUM_PREFIX))
                 .drop((safePage - 1) * safeSize).take(safeSize).map(::mediaItem)
-            mediaId.startsWith(PLAYLIST_PREFIX) -> playlistTracks(mediaId.removePrefix(PLAYLIST_PREFIX))
-                .drop((safePage - 1) * safeSize).take(safeSize).map(::mediaItem)
-            mediaId.startsWith(ARTIST_PREFIX) -> artistAlbums(mediaId.removePrefix(ARTIST_PREFIX))
-                .drop((safePage - 1) * safeSize).take(safeSize).map(::albumNode)
+            mediaId.startsWith(PLAYLIST_PREFIX) -> playlistTracks(mediaId.removePrefix(PLAYLIST_PREFIX), safePage, safeSize)
+                .map(::mediaItem)
+            mediaId.startsWith(ARTIST_PREFIX) -> artistAlbums(mediaId.removePrefix(ARTIST_PREFIX), safePage, safeSize)
+                .map(::albumNode)
             else -> emptyList()
         }
     }
 
     override suspend fun search(query: String, page: Int, pageSize: Int): List<MediaItem> {
-        val results = searchDomain(query)
-        val items = results.tracks.map(::mediaItem) + results.albums.map(::albumNode) +
+        val results = searchDomain(query, page, pageSize)
+        return results.tracks.map(::mediaItem) + results.albums.map(::albumNode) +
             results.artists.map(::artistNode) + results.playlists.map(::playlistNode)
-        return items.drop((page.coerceAtLeast(1) - 1) * pageSize).take(pageSize)
     }
 
-    override suspend fun searchCount(query: String): Int = searchDomain(query).total
+    override suspend fun searchCount(query: String): Int = searchDomain(query, 1, 1).total
 
     override suspend fun mediaItems(trackIds: List<String>): List<MediaItem> =
         trackIds.mapNotNull { id ->
@@ -170,9 +169,9 @@ class LiveMusicCatalog(
             track?.let { albumTracks(it.albumId).map(Track::id) }
         }
         mediaId.startsWith(ALBUM_PREFIX) -> albumTracks(mediaId.removePrefix(ALBUM_PREFIX)).map(Track::id)
-        mediaId.startsWith(PLAYLIST_PREFIX) -> playlistTracks(mediaId.removePrefix(PLAYLIST_PREFIX)).map(Track::id)
-        mediaId.startsWith(ARTIST_PREFIX) -> artistTracks(mediaId.removePrefix(ARTIST_PREFIX)).map(Track::id)
-        mediaId == FAVORITES -> favorites().map(Track::id)
+        mediaId.startsWith(PLAYLIST_PREFIX) -> playlistTracks(mediaId.removePrefix(PLAYLIST_PREFIX), 1, 100).map(Track::id)
+        mediaId.startsWith(ARTIST_PREFIX) -> artistTracks(mediaId.removePrefix(ARTIST_PREFIX), 1, 100).map(Track::id)
+        mediaId == FAVORITES -> favorites(1, 100).map(Track::id)
         else -> null
     }
 
@@ -265,17 +264,17 @@ class LiveMusicCatalog(
         }
     }
 
-    override suspend fun artistAlbums(id: String): List<Album> {
+    override suspend fun artistAlbums(id: String, page: Int, pageSize: Int): List<Album> {
         val context = context()
-        val pageDto = session.authorized { origin, token -> api.artistAlbums(origin, token, id) }
+        val pageDto = session.authorized { origin, token -> api.artistAlbums(origin, token, id, page, pageSize) }
         return pageDto.data.map { dto ->
             dto.toDomain(context.origin, albumTrackIds[dto.id].orEmpty()).also { albumsById[dto.id] = it }
         }
     }
 
-    override suspend fun artistTracks(id: String): List<Track> {
+    override suspend fun artistTracks(id: String, page: Int, pageSize: Int): List<Track> {
         val context = context()
-        val pageDto = session.authorized { origin, token -> api.artistSongs(origin, token, id) }
+        val pageDto = session.authorized { origin, token -> api.artistSongs(origin, token, id, page, pageSize) }
         return pageDto.data.map { dto ->
             dto.toDomain(context.origin).also { track -> tracksById[track.id] = track }
         }
@@ -306,28 +305,22 @@ class LiveMusicCatalog(
         }
     }
 
-    override suspend fun playlistTracks(id: String): List<Track> {
-        playlistTrackIds[id]?.let { ids -> ids.mapNotNull(tracksById::get).takeIf { it.size == ids.size }?.let { return it } }
+    override suspend fun playlistTracks(id: String, page: Int, pageSize: Int): List<Track> {
+        playlistTrackIds[id]?.let { ids ->
+            ids.mapNotNull(tracksById::get).takeIf { it.size == ids.size }?.let { return it }
+        }
         val context = context()
-        val all = mutableListOf<SongDto>()
-        var page = 1
-        try {
-            while (page <= MAX_PLAYLIST_PAGES) {
-                val pageDto = session.authorized { origin, token -> api.playlistSongs(origin, token, id, page, 100) }
-                all += pageDto.data
-                if (!pageDto.meta.hasNext || pageDto.data.isEmpty()) break
-                page++
-            }
-            val tracks = all.map { it.toDomain(context.origin) }
+        return try {
+            val pageDto = session.authorized { origin, token -> api.playlistSongs(origin, token, id, page, pageSize) }
+            val tracks = pageDto.data.map { it.toDomain(context.origin) }
             tracks.forEach { tracksById[it.id] = it }
             playlistTrackIds[id] = tracks.map(Track::id)
             cache.saveTrackIds(context.account, "playlist-tracks", id, playlistTrackIds.getValue(id))
-            return tracks
+            tracks
         } catch (error: Exception) {
             val ids = cache.loadTrackIds(context.account, "playlist-tracks", id)
             val cached = cache.loadSongs(context.account).filter { it.id in ids }.map { it.toDomain(context.origin) }
-            if (cached.isNotEmpty()) return cached
-            throw error
+            cached.drop((page - 1).coerceAtLeast(0) * pageSize).take(pageSize).ifEmpty { throw error }
         }
     }
 
@@ -343,23 +336,19 @@ class LiveMusicCatalog(
         }
     }
 
-    override suspend fun favorites(): List<Track> {
+    override suspend fun favorites(page: Int, pageSize: Int): List<Track> {
         val context = context()
-        return try {
-            val pageDto = session.authorized { origin, token -> api.likedSongs(origin, token) }
-            pageDto.data.map { dto -> dto.toDomain(context.origin).also { tracksById[it.id] = it } }
-        } catch (error: Exception) {
-            throw error
-        }
+        val pageDto = session.authorized { origin, token -> api.likedSongs(origin, token, page, pageSize) }
+        return pageDto.data.map { dto -> dto.toDomain(context.origin).also { tracksById[it.id] = it } }
     }
 
     override suspend fun setFavorite(trackId: String, favorite: Boolean) {
         session.authorized { origin, token -> api.setSongStarred(origin, token, trackId, favorite) }
     }
 
-    override suspend fun searchDomain(query: String): SearchResults {
+    override suspend fun searchDomain(query: String, page: Int, pageSize: Int): SearchResults {
         val context = context()
-        val response = session.authorized { origin, token -> api.search(origin, token, query, 50) }
+        val response = session.authorized { origin, token -> api.search(origin, token, query, pageSize, page) }
         val results = response.toDomain(context.origin)
         results.tracks.forEach { tracksById[it.id] = it }
         results.albums.forEach { albumsById[it.id] = it }
@@ -435,6 +424,5 @@ class LiveMusicCatalog(
         const val ARTIST_PREFIX = "live:artist:"
         const val PLAYLIST_PREFIX = "live:playlist:"
         const val MAX_ALBUM_PAGES = 10
-        const val MAX_PLAYLIST_PAGES = 20
-    }
+            }
 }

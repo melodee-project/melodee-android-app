@@ -71,8 +71,9 @@ data class SearchResults(
     val albums: List<Album> = emptyList(),
     val artists: List<Artist> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
+    val totalCount: Int = 0,
 ) {
-    val total: Int get() = tracks.size + albums.size + artists.size + playlists.size
+    val total: Int get() = if (totalCount > 0) totalCount else tracks.size + albums.size + artists.size + playlists.size
 }
 
 data class HomeFeed(

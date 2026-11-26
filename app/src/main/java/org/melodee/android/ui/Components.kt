@@ -54,7 +54,7 @@ fun PageHeader(title: String, subtitle: String? = null, onBack: (() -> Unit)? = 
             Spacer(Modifier.width(4.dp))
         }
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.headlineMedium)
+            Text(title, style = MaterialTheme.typography.headlineMedium, color = SoftWhite)
             if (subtitle != null) Text(subtitle, color = Muted, style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 4.dp))
         }

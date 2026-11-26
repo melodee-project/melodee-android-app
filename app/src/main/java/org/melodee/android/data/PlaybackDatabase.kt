@@ -45,8 +45,8 @@ data class CachedCatalogEntity(
 
 @Dao
 interface CatalogCacheDao {
-    @Query("SELECT * FROM cached_catalog WHERE accountKey = :accountKey AND kind = :kind")
-    suspend fun loadKind(accountKey: String, kind: String): List<CachedCatalogEntity>
+    @Query("SELECT * FROM cached_catalog WHERE accountKey = :accountKey AND kind = :kind ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun loadKind(accountKey: String, kind: String, limit: Int): List<CachedCatalogEntity>
 
     @Query("SELECT * FROM cached_catalog WHERE accountKey = :accountKey AND kind = :kind AND id = :id")
     suspend fun load(accountKey: String, kind: String, id: String): CachedCatalogEntity?

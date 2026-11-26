@@ -20,7 +20,7 @@ Use explicit constructor dependencies and cohesive packages. Keep core policy lo
 
 Build baseline: AGP 9.5.3 with AGP built-in Kotlin, Gradle 9.6.1 through the checked-in wrapper, JDK 21, Kotlin 2.4.21 and KSP 2.3.14. Compile and target API 36, minimum API 29. Do not reintroduce the `kotlin-android` plugin, legacy AGP DSL opt-outs, `kotlinOptions`, or preview toolchain versions. Record build-baseline changes in ADR-0010 or a superseding ADR.
 
-Live native API work must keep one `LiveSessionManager` for all callers, store credentials only through the Keystore-backed atomic session store, and never persist or log signed stream URLs. Use the shared `AudioCache`/`ResolvingDataSource` path for playback and prefetch, the account-scoped Room queue/metadata tables, and the one service-owned player/session. Fixture or MockWebServer evidence is not live-server or vehicle qualification; record those gaps explicitly.
+Live native API work must keep one `LiveSessionManager` for all callers, store credentials only through the Keystore-backed atomic session store, and never persist or log signed stream URLs. User-facing copy must describe streaming and server-catalog retrieval; never imply that the app downloads music files or creates a local music library. Use the shared `AudioCache`/`ResolvingDataSource` path for playback and prefetch, the account-scoped Room queue/metadata tables, and the one service-owned player/session. Fixture or MockWebServer evidence is not live-server or vehicle qualification; record those gaps explicitly.
 
 The UI cannot own an ExoPlayer, token renewal timer or competing queue. Stable IDs—not signed URLs—identify tracks/cache entries. Include server/account/representation/revision in cache isolation. Guard asynchronous results with account/queue generations. User pause/stop must win over automatic reconnection.
 
@@ -30,9 +30,9 @@ Do not treat every timeout or 401 as logout. A lost refresh response after serve
 
 No passwords, tokens, private endpoints or signed media URLs in commits, logs or screenshots. Exclude SDK paths, build products, credential stores, keystores and local machine files. Keystore protects encryption keys; token records need encrypted atomic storage. Validate allowed URI/origin boundaries. Do not accept arbitrary external media URIs from a controller.
 
-## Demo honesty
+## Authentication and test-fixture honesty
 
-Bundled demo previews are original development fixtures. Label the demo clearly. Do not claim live API integration, actual network prefetch, real authentication or real-car qualification until implemented and evidenced. A pure policy test is not an end-to-end streaming test.
+Authentication is mandatory: the app must not show mock/demo music data or an offline library. Bundled audio and fixture catalogs are automated-test fixtures only. Do not claim live API integration, actual network prefetch, real-car qualification or production resilience until implemented and evidenced. A pure policy test is not an end-to-end streaming test.
 
 ## Validation and reporting
 

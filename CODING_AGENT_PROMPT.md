@@ -24,7 +24,7 @@ Ordinary access-token expiry must not interrupt listening or require the phone U
 
 ## Starter source map
 
-Inspect `PlaybackService.kt` and `PlayerViewModel.kt` under `app/src/main/java/org/melodee/android/playback/` before touching playback. `data/PlaybackDatabase.kt` already persists demo bookmarks, actual shuffle permutation and repeat; `data/UserPreferences.kt` stores preferences/favorites. `data/DemoCatalog.kt` contains the fixture catalog and `artwork/ArtworkProvider.kt` serves allowlisted local artwork. Compose screens live under `ui/`.
+Inspect `PlaybackService.kt` and `PlayerViewModel.kt` under `app/src/main/java/org/melodee/android/playback/` before touching playback. `data/PlaybackDatabase.kt` persists account-scoped queue snapshots; `data/UserPreferences.kt` stores preferences/account metadata. `data/DemoCatalog.kt` and bundled audio are automated-test fixtures only; the app requires authentication and must never show demo/mock catalog data. Compose screens live under `ui/`.
 
 The core foundations are `core/src/main/kotlin/org/melodee/core/cache/PrefetchPlanner.kt`, `TrackKey.kt` and `auth/SessionCoordinator.kt` with their tests. Preserve useful contracts and extend them; do not assume their existence means the network/cache executor or encrypted credential store is integrated.
 

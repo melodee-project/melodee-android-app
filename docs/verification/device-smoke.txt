@@ -5,7 +5,7 @@ Result: BUILD SUCCESSFUL; tests=11 failures=0 errors=0 skipped=0
 Tests executed:
 - org.melodee.android.LiveLibraryUiTest#connectedLibraryRendersOnPhone
 - org.melodee.android.LivePlaybackSmokeTest#liveAlbumPlaysThroughBrowserAndSharedSession
-- org.melodee.android.MediaLibrarySmokeTest#browserResolvesCatalogAndPlaysAnAlbumQueue
+- org.melodee.android.MediaLibrarySmokeTest#browserResolvesAuthenticatedCatalogAndPlaysAnAlbumQueue
 - org.melodee.android.data.PlaybackDatabaseMigrationTest#migrationOneToTwoKeepsDemoBookmarkAndAddsLiveTables
 - org.melodee.android.live.auth.KeystoreSessionStoreTest#encryptedRoundTripAndAtomicReplacement
 - org.melodee.android.live.auth.KeystoreSessionStoreTest#pendingRotationMarkerSurvivesRoundTrip

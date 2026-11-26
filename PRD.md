@@ -10,7 +10,7 @@ Build a music application people enjoy using on their phone and trust during a d
 
 The defining journey is: select an album, enter the car, continue through network changes and coverage gaps, and finish the album without a preventable interruption. Ordinary access-token expiry must remain invisible. The product uses the native Melodee API. This is a new application with no inherited client architecture or source code.
 
-The starter establishes executable application structure and a demo listening experience. It does not represent completion of live-server integration or the road-trip reliability requirements below. [IMPLEMENTATION.md](IMPLEMENTATION.md) distinguishes delivered foundation from remaining work; [VALIDATION.md](VALIDATION.md) records actual verification.
+The authenticated application establishes executable structure and a live-server listening experience. Bundled previews are test fixtures only; the app does not present a demo or offline library. Live-server robustness and the road-trip acceptance scenarios below still require qualification. [IMPLEMENTATION.md](IMPLEMENTATION.md) distinguishes delivered foundation from remaining work; [VALIDATION.md](VALIDATION.md) records actual verification.
 
 ## 2. Confirmed decisions
 
@@ -48,11 +48,11 @@ Diagnose failed playback using a local, sanitized diagnostic export showing stat
 
 ## 4. Product scope
 
-### 4.1 Starter scope
+### 4.1 Authenticated starter scope
 
-The repository provides an Android Studio project, branded phone screens, a real Media3 service-backed demo player and a local demo catalog. Original bundled preview audio exists only to make the starter runnable without a private server. This fixture is not a music download feature. Domain logic and its tests establish initial cache-planning and token-renewal contracts independently of Android UI.
+The repository provides an Android Studio project, branded phone screens, a real Media3 service-backed live player and a mandatory Melodee sign-in gate. Original bundled preview audio exists only as an automated-test fixture; it is never shown as a user library. The app never falls back to mock catalog data and does not pretend to have an offline collection.
 
-Starter controls must accurately describe their effects. Planned live integration cannot appear as a successful connection, an active renewal, a real streamed album or verified resilience. A demonstration may preview policies, but must distinguish policy intent from executed network work.
+The app must authenticate before showing Home, Search, Library or Settings. A signed-in account sees live server data or a truthful empty/error state. It must not present a demo connection, a simulated renewal or fake catalog content as live data.
 
 ### 4.2 Initial production release
 

@@ -211,9 +211,10 @@ class MelodeeApi(
         accessToken: String,
         query: String,
         pageSize: Int = 20,
+        page: Int = 1,
     ): SearchResponseDto {
         val body = json.encodeToString(
-            SearchRequestDto(query = query, pageSize = pageSize, artistPage = 1, albumPage = 1, songPage = 1),
+            SearchRequestDto(query = query, pageSize = pageSize, artistPage = page, albumPage = page, songPage = page),
         )
         val request = authorized(
             origin, accessToken,

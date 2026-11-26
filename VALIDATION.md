@@ -59,7 +59,7 @@ kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
 
 | Check | Result | Evidence / meaning |
 |---|---|---|
-| `./gradlew test --warning-mode=all` | **PASS — 55/55 unit tests** | 31 existing core tests + 24 app tests: 9 API/origin contract, 5 refresh classification, 5 session manager, 5 prefetch executor; 0 failures/errors/skips. |
+| `./gradlew test --warning-mode=all` | **PASS — 56/56 unit tests** | 31 existing core tests + 25 app tests: 10 API/origin/paging contract, 5 refresh classification, 5 session manager, 5 prefetch executor; 0 failures/errors/skips. |
 | `./gradlew :app:lintDebug` | **PASS — 0 errors, 30 warnings** | Warnings are dependency/toolchain advisories, intentional exported media components, target API 37 advisory, KTX suggestions and the unchanged release shrink policy. No suppression or baseline was added. |
 | `./gradlew :app:assembleRelease` | **PASS** | R8 release packaging succeeds with the new network/cache dependencies; artifact remains unsigned by policy. |
 | `./gradlew :app:connectedDebugAndroidTest` | **PASS — 11/11 tests** | 1 original demo service/controller smoke test, 4 Keystore store tests, 1 Room v1→v2 migration test, 3 live catalog/cache/queue tests, 1 live signed-audio service test, 1 live phone UI test. |
@@ -68,7 +68,8 @@ kotlinx.serialization 1.13.0 and Coil 3.5.0 (compileSdk 36 compatible).
 | Live catalog fixture test | **PASS** | Login, album list/detail/songs, media-item metadata, album expansion, cached album fallback when the fixture server is gone, account-scoped queue snapshot with duplicate entries and no signed URL. |
 | Live playback fixture test | **PASS** | Real MediaLibraryService/MediaBrowser, live album browse, signed `melodee://` resolution through `AudioCache`, actual bundled OGG bytes served by MockWebServer, playback reached READY and advanced. |
 | Live phone UI test | **PASS** | After fixture login, the phone Home surface rendered “Northern Lights” from the live catalog. |
-| Demo regression | **PASS** | Original `MediaLibrarySmokeTest` still passes: roots/album, playlist search, real audio, three-track queue and next track. |
+| Authenticated service smoke | **PASS** | `MediaLibrarySmokeTest` now authenticates against the deterministic fixture server and verifies live roots/album, real audio, a two-track queue and next track. |
+| Paged catalog contract | **PASS** | Unit test asserts album page/pageSize query parameters and grouped search page fields; live catalog uses bounded pages and exposes “Show more” instead of fetching a whole library. |
 
 ### Not executed or not qualified
 

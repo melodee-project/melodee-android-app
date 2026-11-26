@@ -100,7 +100,7 @@ private data class SnapshotTrackDto(
         durationMs = durationMs,
         trackNumber = trackNumber,
         bitrateKbps = bitrateKbps,
-        artwork = artworkUrl?.let(Artwork::Remote) ?: Artwork.Local(R.drawable.art_afterglow),
+        artwork = artworkUrl?.let(Artwork::Remote) ?: Artwork.Local(R.drawable.art_placeholder),
         mode = CatalogMode.LIVE,
         revision = revision,
         updatedAt = updatedAt,

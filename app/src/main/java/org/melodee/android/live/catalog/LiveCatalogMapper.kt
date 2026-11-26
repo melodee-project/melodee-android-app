@@ -19,7 +19,7 @@ import org.melodee.android.model.Track
 internal fun artwork(origin: ServerOrigin, imageUrl: String, thumbnailUrl: String): Artwork {
     val remote = OriginPolicy.absoluteSameOrigin(origin, imageUrl.ifBlank { thumbnailUrl })
         ?: OriginPolicy.absoluteSameOrigin(origin, thumbnailUrl)
-    return remote?.let(Artwork::Remote) ?: Artwork.Local(R.drawable.art_afterglow)
+    return remote?.let(Artwork::Remote) ?: Artwork.Local(R.drawable.art_placeholder)
 }
 
 internal fun revisionOf(updatedAt: String, createdAt: String, bitrate: Int): String {
@@ -85,4 +85,5 @@ internal fun SearchResponseDto.toDomain(origin: ServerOrigin): SearchResults = S
     albums = data.albums.map { it.toDomain(origin) },
     artists = data.artists.map { it.toDomain(origin) },
     playlists = data.playlists.map { it.toDomain(origin) },
+    totalCount = data.totalCount,
 )
